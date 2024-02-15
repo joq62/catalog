@@ -108,7 +108,7 @@ build:
 	cp src/rebar.config rebar.config;
 	#INFO: Compile application
 	mkdir ebin;		
-	rebar3 as production compile;	
+	rebar3 compile;	
 	cp _build/default/lib/*/ebin/* ebin;
 	rm -rf _build*;
 	rm -rf ebin;

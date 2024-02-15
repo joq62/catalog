@@ -1,0 +1,29 @@
+%% {ApplicationId,GitPath,DirPAth}
+%%  {"","https://github.com/joq62/.git"},
+
+%%------- Services
+
+
+%%-------- Common 
+#{id=>"log",
+	git_path=>"https://github.com/joq62/log.git",
+	dir=>"/home/joq62/erlang/dev/log"}.
+#{id=>"resource_discovery",
+	git_path=>"https://github.com/joq62/resource_discovery.git",
+	dir=>"/home/joq62/erlang/dev/resource_discovery"}.
+%%-------- Infrastructior
+#{id=>"catalog",
+	git_path=>"https://github.com/joq62/catalog.git",
+	dir=>"/home/joq62/erlang/dev/catalog"}.
+#{id=>"etcd",
+	git_path=>"https://github.com/joq62/etcd.git",
+	dir=>"/home/joq62/erlang/dev/etcd"}.
+
+
+%%-------- Test
+#{id=>"adder",
+	git_path=>"https://github.com/joq62/adder.git",
+	dir=>"/home/joq62/erlang/dev/adder"}.
+#{id=>"divi",
+	git_path=>"https://github.com/joq62/divi.git",
+	dir=>"/home/joq62/erlang/dev/}divi"}.
