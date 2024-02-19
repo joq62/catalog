@@ -23,10 +23,7 @@
 %% API
 
 -export([
-	 get_inventory/0,
-	 is_inventory_updated/0,
-	 update_inventory/0,
-	 clone_inventory/0
+	
 	]).
 
 -export([
@@ -53,63 +50,13 @@
 -define(SERVER, ?MODULE).
 		     
 -record(state, {
-		catalog_dir,
-		inventory_dir,
-		inventory_file,
-		inventory_git
+		
 	        
 	       }).
 
 %%%===================================================================
 %%% API
 %%%===================================================================
-%%--------------------------------------------------------------------
-%% @doc
-%% get_inventory   
-%% 
-%% @end
-%%--------------------------------------------------------------------
--spec get_inventory() -> 
-	  {ok,ListOfApplications :: term()} | {error, Reason :: term()}.
-get_inventory() ->
-    gen_server:call(?SERVER,{get_inventory},infinity).
-
-%%--------------------------------------------------------------------
-%% @doc
-%% get_inventory   
-%% 
-%% @end
-%%--------------------------------------------------------------------
--spec is_inventory_updated() -> 
-	  true | false | {error,Reason :: term()}.
-
-% {error,["Inventory doesnt exists, need to clone"]} .
-is_inventory_updated() ->
-    gen_server:call(?SERVER,{is_inventory_updated},infinity).
-
-%%--------------------------------------------------------------------
-%% @doc
-%% get_inventory   
-%% 
-%% @end
-%%--------------------------------------------------------------------
--spec update_inventory() -> 
-	  ok | {error, Reason :: term()}.
-update_inventory() ->
-    gen_server:call(?SERVER,{update_inventory},infinity).
-
-%%--------------------------------------------------------------------
-%% @doc
-%% get_inventory   
-%% 
-%% @end
-%%--------------------------------------------------------------------
--spec clone_inventory() -> 
-	  ok | {error, Reason :: term()}.
-clone_inventory() ->
-    gen_server:call(?SERVER,{clone_inventory},infinity).
-
-
 %%--------------------------------------------------------------------
 %% @doc
 %% Return all repos   
@@ -140,7 +87,7 @@ paths(ApplicationId) ->
 %% @end
 %%--------------------------------------------------------------------
 -spec app(ApplicationId::string()) -> 
-	  {ok,App::atom()} | {error, Reason :: term()}.
+	  {ok,App} | {error, Reason :: term()}.
 app(ApplicationId) ->
     gen_server:call(?SERVER,{app,ApplicationId},infinity).
 %%--------------------------------------------------------------------
@@ -226,15 +173,12 @@ stop()-> gen_server:stop(?SERVER).
 	  ignore.
 
 init([]) ->
-   
+    io:format("Environment ~p~n",[?ENVIRONMENT]),
 
     
 %    ?LOG_NOTICE("Server started ",[?MODULE]),
     {ok, #state{
-	    catalog_dir=?CatalogDir,
-	    inventory_dir=?InventoryDir,
-	    inventory_file=?InventoryFile,
-	    inventory_git=?InventoryGit
+	    mode=?ENVIRONMENT
 	    
 	   },0}.
 
@@ -255,92 +199,27 @@ init([]) ->
 	  {stop, Reason :: term(), NewState :: term()}.
 
     
-handle_call({get_inventory}, _From, State) ->
-    InventoryFile=State#state.inventory_file,
-    Result=try lib_catalog:get_inventory(InventoryFile) of
-	       {ok,R}->
-		   {ok,R};
+handle_call({new_cluster,ClusterId,HostNameNumWorkers}, _From, State) 
+  when State#state.mode==test ->
+  
+    Result=try lib_control:new_cluster(HostNameNumWorkers) of
+	       {ok,CreateResult}->
+		   {ok,CreateResult};
 	       {error,Reason}->
 		   {error,Reason}
 	   catch
+	       error:Reason:Stacktrace->
+		   {error,Reason,Stacktrace,?MODULE,?LINE};
+	       throw:Reason:Stacktrace->
+		   {throw,Reason,Stacktrace,?MODULE,?LINE};
 	       Event:Reason:Stacktrace ->
 		   {Event,Reason,Stacktrace,?MODULE,?LINE}
 	   end,
     Reply=case Result of
-	      {ok,InventoryList}->
-		 % io:format("InventoryList ~p~n",[{InventoryList,?MODULE,?LINE}]),
+	      {ok,KubeletList}->
+		  io:format("CreateResult ~p~n",[{KubeletList,?MODULE,?LINE}]),
 		  NewState=State,
-		  {ok,InventoryList};
-	      ErrorEvent->
-		  io:format("ErrorEvent ~p~n",[{ErrorEvent,?MODULE,?LINE}]),
-		  NewState=State,
-		  {error,ErrorEvent}
-	  end,
-    {reply, Reply, NewState};
-
-handle_call({is_inventory_updated}, _From, State) ->
-    InventoryDir=State#state.inventory_dir,
-    Result=try lib_catalog:is_inventory_updated(InventoryDir) of
-	       {ok,R}->
-		   {ok,R};
-	       {error,Reason}->
-		   {error,Reason}
-	   catch
-	       Event:Reason:Stacktrace ->
-		   {Event,Reason,Stacktrace,?MODULE,?LINE}
-	   end,
-    Reply=case Result of
-	      {ok,IsUpdated}->
-		  %io:format("IsUpdated ~p~n",[{IsUpdated,?MODULE,?LINE}]),
-		  NewState=State,
-		  IsUpdated;
-	      ErrorEvent->
-		  io:format("ErrorEvent ~p~n",[{ErrorEvent,?MODULE,?LINE}]),
-		  NewState=State,
-		  {error,ErrorEvent}
-	  end,
-    {reply, Reply, NewState};
-
-handle_call({update_inventory}, _From, State) ->
-    InventoryDir=State#state.inventory_dir,
-    Result=try lib_catalog:update_inventory(InventoryDir) of
-	       {ok,R}->
-		   {ok,R};
-	       {error,Reason}->
-		   {error,Reason}
-	   catch
-	       Event:Reason:Stacktrace ->
-		   {Event,Reason,Stacktrace,?MODULE,?LINE}
-	   end,
-    Reply=case Result of
-	      {ok,UpdateResult}->
-		  io:format("UpdateResult ~p~n",[{UpdateResult,?MODULE,?LINE}]),
-		  NewState=State,
-		  {ok,UpdateResult};
-	      ErrorEvent->
-		  io:format("ErrorEvent ~p~n",[{ErrorEvent,?MODULE,?LINE}]),
-		  NewState=State,
-		  {error,ErrorEvent}
-	  end,
-    {reply, Reply, NewState};
-
-handle_call({clone_inventory}, _From, State) ->
-    InventoryDir=State#state.inventory_dir,
-    InventoryGit=State#state.inventory_git,
-    Result=try lib_catalog:clone_inventory(InventoryDir,InventoryGit) of
-	       ok->
-		   ok;
-	       {error,Reason}->
-		   {error,Reason}
-	   catch
-	       Event:Reason:Stacktrace ->
-		   {Event,Reason,Stacktrace,?MODULE,?LINE}
-	   end,
-    Reply=case Result of
-	      ok->
-		%  io:format("CloneResult ~p~n",[{ok,?MODULE,?LINE}]),
-		  NewState=State,
-		  ok;
+		  {ok,KubeletList};
 	      ErrorEvent->
 		  io:format("ErrorEvent ~p~n",[{ErrorEvent,?MODULE,?LINE}]),
 		  NewState=State,
@@ -388,8 +267,9 @@ handle_cast(UnMatchedSignal, State) ->
 	  {noreply, NewState :: term(), hibernate} |
 	  {stop, Reason :: normal | term(), NewState :: term()}.
 
-handle_info(timeout, State) ->
-    io:format("timeout ~p~n",[{?MODULE,?LINE}]),
+handle_info(timeout, State) 
+  when State#state.mode==production ->
+    io:format("timeout ~p~n",[{State#state.mode,?MODULE,?LINE}]),
    
     
     {noreply, State};

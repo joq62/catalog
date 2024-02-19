@@ -1,0 +1,10 @@
+{application,catalog,
+             [{description,"An OTP application"},
+              {vsn,"0.1.0"},
+              {registered,[]},
+              {mod,{catalog_app,[]}},
+              {applications,[kernel,stdlib]},
+              {env,[]},
+              {modules,[catalog,catalog_app,catalog_sup,lib_catalog]},
+              {licenses,["Apache-2.0"]},
+              {links,[]}]}.
