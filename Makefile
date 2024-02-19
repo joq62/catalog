@@ -22,6 +22,7 @@ no_ebin_commit:
 	rm -rf erl_cra* rebar3_crashreport_GLURK;
 	#INFO: Deleting euinit test applications dirs
 	rm -rf log resource_discovery etcd;
+	rm -rf inventory;
 	rm -rf test_ebin;
 	#INFO: Deleting tilde files and beams
 	rm -rf *~ */*~ */*/*~;
@@ -58,6 +59,7 @@ with_ebin_commit:
 	rm -rf erl_cra* rebar3_crashreport_GLURK;
 	#INFO: Deleting euinit test applications dirs
 	rm -rf log resource_discovery etcd;
+	rm -rf inventory;
 	rm -rf test_ebin;
 	#INFO: Deleting tilde files and beams
 	rm -rf *~ */*~ */*/*~;

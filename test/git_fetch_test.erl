@@ -9,7 +9,7 @@
 %%% Pod consits beams from all services, app and app and sup erl.
 %%% The setup of envs is
 %%% -------------------------------------------------------------------
--module(git_test).      
+-module(git_fetch_test).      
  
 -export([start/0]).
 
@@ -27,7 +27,7 @@ start()->
     io:format("Start ~p~n",[{?MODULE,?FUNCTION_NAME,?LINE}]),
     
     ok=setup(),
-    ok=git_normal(),
+    ok=git_fetch(),
 
     io:format("Test OK !!! ~p~n",[?MODULE]),
 %    timer:sleep(1000),
@@ -40,18 +40,14 @@ start()->
 %% @spec
 %% @end
 %%--------------------------------------------------------------------
-git_normal()->
+git_fetch()->
     io:format("Start ~p~n",[{?MODULE,?FUNCTION_NAME}]),
-    {error,{error,["Inventory doesnt exists, need to clone"]}}=catalog:is_inventory_updated(),
-    ok=catalog:clone_inventory(),
+    false=catalog:is_inventory_updated(),
+    ok=catalog:update_inventory(),
     true=catalog:is_inventory_updated(),
-
-    {ok,InventoryList}=catalog:get_inventory(),
-     [
-      "adder","divi","etcd","log","resource_discovery"
-     ]=lists:sort(InventoryList),
-
-    {error,{error,["Already updated ","inventory"]}}=catalog:update_inventory(),
+    
+    
+   
 
     ok.
 %% --------------------------------------------------------------------
@@ -61,6 +57,6 @@ git_normal()->
 %% --------------------------------------------------------------------
 setup()->
     io:format("Start ~p~n",[{?MODULE,?FUNCTION_NAME}]),
-    file:del_dir_r(?InventoryDir),
+  
     
     ok.

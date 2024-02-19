@@ -304,8 +304,8 @@ handle_call({is_inventory_updated}, _From, State) ->
 handle_call({update_inventory}, _From, State) ->
     InventoryDir=State#state.inventory_dir,
     Result=try lib_catalog:update_inventory(InventoryDir) of
-	       {ok,R}->
-		   {ok,R};
+	       ok->
+		   ok;
 	       {error,Reason}->
 		   {error,Reason}
 	   catch
@@ -313,10 +313,10 @@ handle_call({update_inventory}, _From, State) ->
 		   {Event,Reason,Stacktrace,?MODULE,?LINE}
 	   end,
     Reply=case Result of
-	      {ok,UpdateResult}->
-		  io:format("UpdateResult ~p~n",[{UpdateResult,?MODULE,?LINE}]),
+	      ok->
+		  %io:format("UpdateResult ~p~n",[{UpdateResult,?MODULE,?LINE}]),
 		  NewState=State,
-		  {ok,UpdateResult};
+		  ok;
 	      ErrorEvent->
 		  io:format("ErrorEvent ~p~n",[{ErrorEvent,?MODULE,?LINE}]),
 		  NewState=State,
