@@ -14,7 +14,10 @@
  
 %% API
 -export([
-
+	 get_paths/1,
+	 is_appl_updated/1,
+	 update_appl/1,
+	 clone_appl/3
 	]).
 
 -export([
@@ -29,6 +32,65 @@
 %%% API
 %%%===================================================================
 
+
+
+
+
+%%********************* Appl *****************************************
+%%--------------------------------------------------------------------
+%% @doc
+%% 
+%% @end
+%%--------------------------------------------------------------------
+get_paths(ApplDir)->
+    Ebin=filename:join([ApplDir,"ebin"]),
+    Priv=filename:join([ApplDir,"priv"]),
+    true=filelib:is_dir(Ebin),
+    Paths=case filelib:is_dir(Priv) of
+	      true->
+		  [Ebin,Priv];
+	      false->
+		  [Ebin]
+	  end,
+    {ok,Paths}.
+%%--------------------------------------------------------------------
+%% @doc
+%% 
+%% @end
+%%--------------------------------------------------------------------
+is_appl_updated(AppDir)->
+    Result=case filelib:is_dir(AppDir) of
+	       false->
+		   {error,["AppDir doesnt exists, need to clone"]};
+	       true->
+		   {ok,is_up_to_date(AppDir)}
+	   end,
+    Result.
+%%--------------------------------------------------------------------
+%% @doc
+%% 
+%% @end
+%%--------------------------------------------------------------------
+update_appl(AppDir)->
+    true=filelib:is_dir(AppDir),
+    Result=merge(AppDir),   
+    Result.
+%%--------------------------------------------------------------------
+%% @doc
+%% 
+%% @end
+%%--------------------------------------------------------------------
+clone_appl(ApplId,ApplDir,InventoryFile)->
+    {ok,Info}=file:consult(InventoryFile),
+    [GitPath]=[maps:get(git_path,Map)||Map<-Info,
+				       ApplId=:=maps:get(id,Map)],
+    file:del_dir_r(ApplDir),
+    ok=file:make_dir(ApplDir),
+    ok=clone(ApplDir,GitPath),   
+    ok.
+
+
+%%********************* Inventory ************************************
 %%--------------------------------------------------------------------
 %% @doc
 %% 

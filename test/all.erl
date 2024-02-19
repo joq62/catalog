@@ -16,7 +16,7 @@
 %% --------------------------------------------------------------------
 %% Include files
 %% --------------------------------------------------------------------
-
+-include("catalog.hrl").
 
 %% --------------------------------------------------------------------
 %% Function: available_hosts()
@@ -27,8 +27,8 @@ start()->
     io:format("Start ~p~n",[{?MODULE,?FUNCTION_NAME,?LINE}]),
     
     ok=setup(),
-   % ok=git_test:start(),
-    ok=git_fetch_test:start(),
+    ok=git_test:start(),
+   % ok=git_fetch_test:start(),
 
     io:format("Test OK !!! ~p~n",[?MODULE]),
 %    timer:sleep(1000),
@@ -50,7 +50,8 @@ start()->
 setup()->
     io:format("Start ~p~n",[{?MODULE,?FUNCTION_NAME}]),
     
+    file:del_dir_r(?InventoryDir),
+    file:del_dir_r(?CatalogDir),
     ok=application:start(catalog),
-       
     pong=catalog:ping(),
     ok.

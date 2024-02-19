@@ -23,6 +23,8 @@ no_ebin_commit:
 	#INFO: Deleting euinit test applications dirs
 	rm -rf log resource_discovery etcd;
 	rm -rf inventory;
+	rm -rf catalog;
+	rm -rf doc;
 	rm -rf test_ebin;
 	#INFO: Deleting tilde files and beams
 	rm -rf *~ */*~ */*/*~;
@@ -60,6 +62,8 @@ with_ebin_commit:
 	#INFO: Deleting euinit test applications dirs
 	rm -rf log resource_discovery etcd;
 	rm -rf inventory;
+	rm -rf catalog;
+	rm -rf doc;
 	rm -rf test_ebin;
 	#INFO: Deleting tilde files and beams
 	rm -rf *~ */*~ */*/*~;
@@ -92,6 +96,9 @@ build:
 	rm -rf erl_cra* rebar3_crashreport_GLURK;
 	#INFO: Deleting euinit test applications dirs
 	rm -rf log resource_discovery etcd;
+	rm -rf inventory;
+	rm -rf catalog;
+	rm -rf doc;
 	rm -rf test_ebin;
 	#INFO: Deleting tilde files and beams
 	rm -rf *~ */*~ */*/*~;
@@ -122,6 +129,8 @@ clean:
 	rm -rf erl_cra* rebar3_crashreport_GLURK;
 	#INFO: Deleting euinit test applications dirs
 	rm -rf log resource_discovery etcd;
+	rm -rf inventory;
+	rm -rf catalog;
 	rm -rf test_ebin;
 	#INFO: Deleting tilde files and beams
 	rm -rf *~ */*~ */*/*~;
@@ -139,38 +148,6 @@ clean:
 	rm -f rebar.config;
 	cp src/rebar.config rebar.config;
 	#INFO: clean ENDED SUCCESSFUL
-function_test:
-	#INFO: with_ebin_commit STARTED
-	#INFO: Cleaning up to prepare build STARTED	 
-	#INFO: Deleting crash reports
-	rm -rf erl_cra* rebar3_crashreport_GLURK;
-	#INFO: Deleting euinit test applications dirs
-	rm -rf log resource_discovery etcd;
-	rm -rf test_ebin;
-	#INFO: Deleting tilde files and beams
-	rm -rf *~ */*~ */*/*~;
-	rm -rf src/*.beam src/*/*.beam;
-	rm -rf test/*.beam test/*/*.beam;
-	rm -rf *.beam;
-	#INFO: Deleting files and dirs created during builds
-	rm -rf _build;
-	rm -rf ebin;
-	rm -rf rebar.lock
-	#INFO: Deleting files and dirs created during execution/runtime 
-	rm -rf logs;
-	rm -rf *_a;
-	# copy production rebar.config from src
-	rm -f rebar.config;
-	cp src/rebar.config rebar.config;
-	#INFO: Compile application
-	mkdir ebin;		
-	rebar3 compile;	
-	cp _build/default/lib/*/ebin/* ebin;
-	rm -rf _build*;
-	erl -pa ebin -pa test_ebin\
-	    -sname kube_control_a\
-	    -run kube_control start\
-	    -setcookie a
 eunit: 
 	#INFO: eunit STARTED
 	#INFO: Cleaning up to prepare build STARTED	 
@@ -178,6 +155,9 @@ eunit:
 	rm -rf erl_cra* rebar3_crashreport_GLURK;
 	#INFO: Deleting euinit test applications dirs
 	rm -rf log resource_discovery etcd;
+	rm -rf inventory;
+	rm -rf catalog;
+	rm -rf doc;
 	rm -rf test_ebin;
 	#INFO: Deleting tilde files and beams
 	rm -rf src/*.beam src/*/*.beam;

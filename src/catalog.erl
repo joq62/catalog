@@ -30,7 +30,11 @@
 	]).
 
 -export([
-
+	 get_paths/1,
+	 is_appl_updated/1,
+	 update_appl/1,
+	 clone_appl/1
+	 
 	]).
 
 %% admin
@@ -63,6 +67,63 @@
 %%%===================================================================
 %%% API
 %%%===================================================================
+
+%%********************* Appl *****************************************
+
+
+%%--------------------------------------------------------------------
+%% @doc
+%% get the full path to ebin and if presence the priv dirs to application
+%% ApplId  
+%% 
+%% @end
+%%--------------------------------------------------------------------
+-spec get_paths(ApplId :: string()) -> 
+	  {ok,ListOfEbinAndPriv :: term()} | {error, Reason :: term()}.
+get_paths(ApplId) ->
+    gen_server:call(?SERVER,{get_paths,ApplId},infinity).
+
+%%--------------------------------------------------------------------
+%% @doc
+%% get_inventory   
+%% 
+%% @end
+%%--------------------------------------------------------------------
+-spec is_appl_updated(ApplId :: string()) -> 
+	  true | false | {error,Reason :: term()}.
+
+% {error,["Inventory doesnt exists, need to clone"]} .
+is_appl_updated(ApplId) ->
+    gen_server:call(?SERVER,{is_appl_updated,ApplId},infinity).
+
+%%--------------------------------------------------------------------
+%% @doc
+%% get_inventory   
+%% 
+%% @end
+%%--------------------------------------------------------------------
+-spec update_appl(ApplId :: string()) -> 
+	  ok | {error, Reason :: term()}.
+update_appl(ApplId) ->
+    gen_server:call(?SERVER,{update_appl,ApplId},infinity).
+
+%%--------------------------------------------------------------------
+%% @doc
+%% get_inventory   
+%% 
+%% @end
+%%--------------------------------------------------------------------
+-spec clone_appl(ApplId :: string()) -> 
+	  ok | {error, Reason :: term()}.
+clone_appl(ApplId) ->
+    gen_server:call(?SERVER,{clone_appl,ApplId},infinity).
+
+
+
+
+
+%%********************* Inventory ************************************
+
 %%--------------------------------------------------------------------
 %% @doc
 %% get_inventory   
@@ -227,8 +288,7 @@ stop()-> gen_server:stop(?SERVER).
 
 init([]) ->
    
-
-    
+    file:make_dir(?CatalogDir),
 %    ?LOG_NOTICE("Server started ",[?MODULE]),
     {ok, #state{
 	    catalog_dir=?CatalogDir,
@@ -237,6 +297,7 @@ init([]) ->
 	    inventory_git=?InventoryGit
 	    
 	   },0}.
+
 
 %%--------------------------------------------------------------------
 %% @private
@@ -254,6 +315,101 @@ init([]) ->
 	  {stop, Reason :: term(), Reply :: term(), NewState :: term()} |
 	  {stop, Reason :: term(), NewState :: term()}.
 
+%%********************* Appl *****************************************
+handle_call({get_paths,ApplId}, _From, State) ->
+    ApplDir=filename:join([State#state.catalog_dir,ApplId]),
+    Result=try lib_catalog:get_paths(ApplDir) of
+	       {ok,R}->
+		   {ok,R};
+	       {error,Reason}->
+		   {error,Reason}
+	   catch
+	       Event:Reason:Stacktrace ->
+		   {Event,Reason,Stacktrace,?MODULE,?LINE}
+	   end,
+    Reply=case Result of
+	      {ok,Paths}->
+		 % io:format("InventoryList ~p~n",[{InventoryList,?MODULE,?LINE}]),
+		  NewState=State,
+		  {ok,Paths};
+	      ErrorEvent->
+		%  io:format("ErrorEvent ~p~n",[{ErrorEvent,?MODULE,?LINE}]),
+		  NewState=State,
+		  {error,ErrorEvent}
+	  end,
+    {reply, Reply, NewState};
+
+handle_call({is_appl_updated,ApplId}, _From, State) ->
+    ApplDir=filename:join([State#state.catalog_dir,ApplId]),
+    Result=try lib_catalog:is_inventory_updated(ApplDir) of
+	       {ok,R}->
+		   {ok,R};
+	       {error,Reason}->
+		   {error,Reason}
+	   catch
+	       Event:Reason:Stacktrace ->
+		   {Event,Reason,Stacktrace,?MODULE,?LINE}
+	   end,
+    Reply=case Result of
+	      {ok,IsUpdated}->
+		  %io:format("IsUpdated ~p~n",[{IsUpdated,?MODULE,?LINE}]),
+		  NewState=State,
+		  IsUpdated;
+	      ErrorEvent->
+		%  io:format("ErrorEvent ~p~n",[{ErrorEvent,?MODULE,?LINE}]),
+		  NewState=State,
+		  {error,ErrorEvent}
+	  end,
+    {reply, Reply, NewState};
+
+handle_call({update_appl,ApplId}, _From, State) ->
+    ApplDir=filename:join([State#state.catalog_dir,ApplId]),
+    Result=try lib_catalog:update_inventory(ApplDir) of
+	       ok->
+		   ok;
+	       {error,Reason}->
+		   {error,Reason}
+	   catch
+	       Event:Reason:Stacktrace ->
+		   {Event,Reason,Stacktrace,?MODULE,?LINE}
+	   end,
+    Reply=case Result of
+	      ok->
+		  %io:format("UpdateResult ~p~n",[{UpdateResult,?MODULE,?LINE}]),
+		  NewState=State,
+		  ok;
+	      ErrorEvent->
+		  io:format("ErrorEvent ~p~n",[{ErrorEvent,?MODULE,?LINE}]),
+		  NewState=State,
+		  {error,ErrorEvent}
+	  end,
+    {reply, Reply, NewState};
+
+handle_call({clone_appl,ApplId}, _From, State) ->
+    ApplDir=filename:join([State#state.catalog_dir,ApplId]),
+    InventoryFile=State#state.inventory_file,
+    Result=try lib_catalog:clone_appl(ApplId,ApplDir,InventoryFile) of
+	       ok->
+		   ok;
+	       {error,Reason}->
+		   {error,Reason}
+	   catch
+	       Event:Reason:Stacktrace ->
+		   {Event,Reason,Stacktrace,?MODULE,?LINE}
+	   end,
+    Reply=case Result of
+	      ok->
+		%  io:format("CloneResult ~p~n",[{ok,?MODULE,?LINE}]),
+		  NewState=State,
+		  ok;
+	      ErrorEvent->
+		  io:format("ErrorEvent ~p~n",[{ErrorEvent,?MODULE,?LINE}]),
+		  NewState=State,
+		  {error,ErrorEvent}
+	  end,
+    {reply, Reply, NewState};
+
+%%********************* Inventory ************************************
     
 handle_call({get_inventory}, _From, State) ->
     InventoryFile=State#state.inventory_file,
