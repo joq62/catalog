@@ -17,6 +17,7 @@
 -include("log.api").
 
 -include("catalog.hrl").
+-include("catalog.resource_discovery").
 
 
 
@@ -604,7 +605,8 @@ handle_info(timeout, State) ->
 		     State
 	     end,
     
-    
+    initial_trade_resources(),
+
     {noreply, NewState};
 
 
@@ -655,3 +657,14 @@ format_status(_Opt, Status) ->
 %%%===================================================================
 %%% Internal functions
 %%%===================================================================
+%%--------------------------------------------------------------------
+%% @doc
+%%
+%% @end
+%%--------------------------------------------------------------------
+initial_trade_resources()->
+    [rd:add_local_resource(ResourceType,Resource)||{ResourceType,Resource}<-?LocalResourceTuples],
+    [rd:add_target_resource_type(TargetType)||TargetType<-?TargetTypes],
+    rd:trade_resources(),
+    timer:sleep(3000),
+    ok.
