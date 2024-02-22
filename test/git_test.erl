@@ -29,6 +29,7 @@ start()->
     
     ok=setup(),
     ok=git_repo(),
+    ok=git_application(),
  
     io:format("Test OK !!! ~p~n",[?MODULE]),
     timer:sleep(1000),
@@ -42,16 +43,62 @@ start()->
 %% @spec
 %% @end
 %%--------------------------------------------------------------------
+git_application()->
+    io:format("Start ~p~n",[{?MODULE,?FUNCTION_NAME}]),
+    [
+     "adder","controller","deployment",
+     "divi","host","log","resource_discovery","worker"
+    ]=lists:sort(catalog:get_all_ids()),
+    
+    %% check if updated
+  [
+   {error,["Applications local repo doesnt exists","catalog/application_dir/adder"]},
+   {error,["Applications local repo doesnt exists","catalog/application_dir/controller"]},
+   {error,["Applications local repo doesnt exists","catalog/application_dir/deployment"]},
+   {error,["Applications local repo doesnt exists","catalog/application_dir/divi"]},
+   {error,["Applications local repo doesnt exists","catalog/application_dir/host"]},
+   {error,["Applications local repo doesnt exists","catalog/application_dir/log"]},
+   {error,["Applications local repo doesnt exists","catalog/application_dir/resource_discovery"]},
+   {error,["Applications local repo doesnt exists","catalog/application_dir/worker"]}
+  ]=[catalog:is_application_repo_updated(ApplicationId)||ApplicationId<-lists:sort(catalog:get_all_ids())],
+
+    [ok,ok,ok,ok,ok,ok,ok,{error,_}]=[catalog:clone_application_repo(ApplicationId)||ApplicationId<-lists:sort(catalog:get_all_ids())],
+    
+  
+
+   % [
+   %  {app,log},{application_name,"log"},{erl_args," "},
+   %  {git,"https://github.com/joq62/log.git"},
+   %  {id,"log"},{vsn,"0.1.0"}
+   % ]=lists:sort(maps:to_list(Map)),
+
+    {ok,?TestApplicationId}=catalog:get_info(id,?TestApplicationId),
+    {ok,"log"}=catalog:get_info(application_name,?TestApplicationId),
+    {ok,"0.1.0"}=catalog:get_info(vsn,?TestApplicationId),
+    {ok,log}=catalog:get_info(app,?TestApplicationId),
+    {ok," "}=catalog:get_info(erl_args,?TestApplicationId),
+    {ok,"https://github.com/joq62/log.git"}=catalog:get_info(git,?TestApplicationId),
+
+    {error,{badkey,glurk},_,_,_}=catalog:get_info(glurk,?TestApplicationId),
+   {error,["ApplicationId doens't exists",glurk]}=catalog:get_info(git,glurk),
+    ok.
+
+
+%%--------------------------------------------------------------------
+%% @doc
+%% @spec
+%% @end
+%%--------------------------------------------------------------------
 git_repo()->
     io:format("Start ~p~n",[{?MODULE,?FUNCTION_NAME}]),
-    {error,{error,["RepoDir doesnt exists, need to clone","catalog/catalog_specs"]}}=catalog:is_repo_updated(),
+    {error,["RepoDir doesnt exists, need to clone","catalog/catalog_specs"]}=catalog:is_repo_updated(),
     ok=catalog:clone_repo(),
     true=catalog:is_repo_updated(),
-    {error,{error,["Already updated ","catalog/catalog_specs"]}}=catalog:update_repo(),
+    {error,["Already updated ","catalog/catalog_specs"]}=catalog:update_repo(),
     
    [
-    "adder","controller","deploy","divi","host",
-    "log","resource_discovery","worker"
+    "adder","controller","deployment",
+    "divi","host","log","resource_discovery","worker"
    ]=lists:sort(catalog:get_all_ids()),
    
     {ok,Map}=catalog:get_map(?TestApplicationId),
@@ -79,6 +126,5 @@ git_repo()->
 %% --------------------------------------------------------------------
 setup()->
     io:format("Start ~p~n",[{?MODULE,?FUNCTION_NAME}]),
-    file:del_dir_r(?MainDir),
-    file:make_dir(?MainDir),
+    file:del_dir_r(?RepoDir),
     ok.

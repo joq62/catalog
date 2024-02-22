@@ -23,12 +23,16 @@
 %% API
 
 -export([
-	
 	 is_repo_updated/0,
 	 update_repo/0,
 	 clone_repo/0
 	]).
 
+-export([
+	 is_application_repo_updated/1,
+	 update_application_repo/1,
+	 clone_application_repo/1
+	]).
 -export([
 	 get_info/2,
 	 get_all_ids/0,
@@ -54,15 +58,19 @@
 	 terminate/2, code_change/3, format_status/2]).
 
 -define(SERVER, ?MODULE).
+
+
 		     
 -record(state, {
 		
 		main_dir,
 	        repo_dir,
+		application_dir,
 		spec_maps,
 	        repo_git
 	        
 	       }).
+
 
 %%%===================================================================
 %%% API
@@ -119,6 +127,46 @@ get_map(ApplicationId) ->
 
 
 %%********************* Repo ************************************
+
+
+%	 is_application_repo_updated/1,
+%	 update_application_repo/1,
+% clone_application_repo/1
+
+
+%%--------------------------------------------------------------------
+%% @doc
+%%    
+%% 
+%% @end
+%%--------------------------------------------------------------------
+-spec is_application_repo_updated(ApplicationId :: string()) -> 
+	  true | false | {error,Reason :: term()}.
+
+is_application_repo_updated(ApplicationId) ->
+    gen_server:call(?SERVER,{is_application_repo_updated,ApplicationId},infinity).
+
+%%--------------------------------------------------------------------
+%% @doc
+%% repo   
+%% 
+%% @end
+%%--------------------------------------------------------------------
+-spec update_application_repo(ApplicationId :: string()) -> 
+	  ok | {error, Reason :: term()}.
+update_application_repo(ApplicationId) ->
+    gen_server:call(?SERVER,{update_application_repo,ApplicationId},infinity).
+
+%%--------------------------------------------------------------------
+%% @doc
+%%    
+%% 
+%% @end
+%%--------------------------------------------------------------------
+-spec clone_application_repo(ApplicationId :: string()) -> 
+	  ok | {error, Reason :: term()}.
+clone_application_repo(ApplicationId) ->
+    gen_server:call(?SERVER,{clone_application_repo,ApplicationId},infinity).
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -213,6 +261,7 @@ init([]) ->
     {ok, #state{
 	    main_dir=?MainDir,
 	    repo_dir=?RepoDir,
+	    application_dir=?ApplicationDir,
 	    spec_maps=[],
 	    repo_git=?RepoGit
 	  
@@ -246,12 +295,21 @@ handle_call({get_all_ids}, _From, State) ->
     {reply, Reply, State};
 
 handle_call({get_map,ApplicationId}, _From, State) ->
-    Reply=case [Map||Map<-State#state.spec_maps,
-		     ApplicationId==maps:get(id,Map)] of
-	      []->
-		  {error,["ApplicationId doens't exists",ApplicationId]};
-	      [Map]->
-		  {ok,Map}
+    SpecMaps=State#state.spec_maps,
+    Result=try lib_catalog:get_map(ApplicationId,SpecMaps) of
+	       {ok,R}->
+		   {ok,R};
+	       {error,Reason}->
+		   {error,Reason}
+	   catch
+	       Event:Reason:Stacktrace ->
+		   {Event,Reason,Stacktrace,?MODULE,?LINE}
+	   end,
+    Reply=case Result of
+	      {ok,Map}->
+		  {ok,Map};
+	      ErrorEvent->
+		  ErrorEvent
 	  end,
     {reply, Reply, State};
 
@@ -275,7 +333,79 @@ handle_call({get_info,Key,ApplicationId}, _From, State) ->
     {reply, Reply, State};
 
 %%********************* Repo ************************************
-    
+
+handle_call({is_application_repo_updated,ApplicationId}, _From, State) ->
+    ApplicationDir=State#state.application_dir,
+    SpecMaps=State#state.spec_maps,
+    Result=try lib_catalog:is_application_repo_updated(ApplicationDir,ApplicationId,SpecMaps) of
+	       {ok,R}->
+		   {ok,R};
+	       {error,Reason}->
+		   {error,Reason}
+	   catch
+	       Event:Reason:Stacktrace ->
+		   {Event,Reason,Stacktrace,?MODULE,?LINE}
+	   end,
+    Reply=case Result of
+	      {ok,IsUpdated}->
+		  %io:format("IsUpdated ~p~n",[{IsUpdated,?MODULE,?LINE}]),
+		  NewState=State,
+		  IsUpdated;
+	      ErrorEvent->
+		  io:format("ErrorEvent ~p~n",[{ErrorEvent,?MODULE,?LINE}]),
+		  NewState=State,
+		  ErrorEvent
+	  end,
+    {reply, Reply, NewState};
+
+handle_call({update_application_repo,ApplicationId}, _From, State) ->
+    ApplicationDir=State#state.application_dir,
+    SpecMaps=State#state.spec_maps,
+    Result=try lib_catalog:update_application_repo(ApplicationDir,ApplicationId,SpecMaps) of
+	       ok->
+		   ok;
+	       {error,Reason}->
+		   {error,Reason}
+	   catch
+	       Event:Reason:Stacktrace ->
+		   {Event,Reason,Stacktrace,?MODULE,?LINE}
+	   end,
+    Reply=case Result of
+	      ok->
+		  %io:format("UpdateResult ~p~n",[{UpdateResult,?MODULE,?LINE}]),
+		  NewState=State,
+		  ok;
+	      ErrorEvent->
+		  io:format("ErrorEvent ~p~n",[{ErrorEvent,?MODULE,?LINE}]),
+		  NewState=State,
+		  ErrorEvent
+	  end,
+    {reply, Reply, NewState};
+
+handle_call({clone_application_repo,ApplicationId}, _From, State) ->
+    ApplicationDir=State#state.application_dir,
+    SpecMaps=State#state.spec_maps,
+    Result=try lib_catalog:clone_application_repo(ApplicationDir,ApplicationId,SpecMaps) of
+	       ok->
+		   ok;
+	       {error,Reason}->
+		   {error,Reason}
+	   catch
+	       Event:Reason:Stacktrace ->
+		   {Event,Reason,Stacktrace,?MODULE,?LINE}
+	   end,
+    Reply=case Result of
+	      ok->
+		%  io:format("CloneResult ~p~n",[{ok,?MODULE,?LINE}]),
+		  NewState=State,
+		  ok;
+	      ErrorEvent->
+		  io:format("ErrorEvent ~p~n",[{ErrorEvent,?MODULE,?LINE}]),
+		  NewState=State,
+		 ErrorEvent
+	  end,
+    {reply, Reply, NewState};
+
 handle_call({is_repo_updated}, _From, State) ->
     RepoDir=State#state.repo_dir,
     Result=try lib_catalog:is_repo_updated(RepoDir) of
@@ -295,7 +425,7 @@ handle_call({is_repo_updated}, _From, State) ->
 	      ErrorEvent->
 		  io:format("ErrorEvent ~p~n",[{ErrorEvent,?MODULE,?LINE}]),
 		  NewState=State,
-		  {error,ErrorEvent}
+		  ErrorEvent
 	  end,
     {reply, Reply, NewState};
 
@@ -318,7 +448,7 @@ handle_call({update_repo}, _From, State) ->
 	      ErrorEvent->
 		  io:format("ErrorEvent ~p~n",[{ErrorEvent,?MODULE,?LINE}]),
 		  NewState=State,
-		  {error,ErrorEvent}
+		  ErrorEvent
 	  end,
     {reply, Reply, NewState};
 
@@ -342,7 +472,7 @@ handle_call({clone_repo}, _From, State) ->
 	      ErrorEvent->
 		  io:format("ErrorEvent ~p~n",[{ErrorEvent,?MODULE,?LINE}]),
 		  NewState=State,
-		  {error,ErrorEvent}
+		  ErrorEvent
 	  end,
     {reply, Reply, NewState};
  
@@ -390,7 +520,8 @@ handle_info(timeout, State) ->
     io:format("timeout ~p~n",[{?MODULE,?LINE}]),
     RepoDir=State#state.repo_dir,
     RepoGit=State#state.repo_git,
-    Result=try lib_catalog:check_update_repo_return_maps(RepoDir,RepoGit) of
+    ApplicationDir=State#state.application_dir,
+    Result=try lib_catalog:check_update_repo_return_maps(RepoDir,RepoGit,ApplicationDir) of
 	       {ok,R}->
 		   {ok,R};
 	       {error,Reason}->

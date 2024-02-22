@@ -15,7 +15,8 @@
 %% API
 -export([
 	 get_info/3,
-	 check_update_repo_return_maps/2
+	 get_map/2,
+	 check_update_repo_return_maps/3
 	 
 	]).
 
@@ -23,6 +24,12 @@
 	 is_repo_updated/1,
 	 update_repo/1,
 	 clone_repo/2
+	]).
+
+-export([
+	 is_application_repo_updated/3,
+	 update_application_repo/3,
+	 clone_application_repo/3
 	]).
 
 %%%===================================================================
@@ -34,6 +41,25 @@
 
 
 %%********************* Host *****************************************    
+%%--------------------------------------------------------------------
+%% @doc
+%% 
+%% @end
+%%--------------------------------------------------------------------
+get_map(ApplicationId,SpecMaps)->
+    Result=case [Map||Map<-SpecMaps,
+		      ApplicationId==maps:get(id,Map)] of
+	       []->
+		   {error,["ApplicationId doens't exists",ApplicationId]};
+	       [Map]->
+		   {ok,Map}
+	   end,
+    Result. 
+%%--------------------------------------------------------------------
+%% @doc
+%% 
+%% @end
+%%--------------------------------------------------------------------
 get_info(Key,ApplicationId,SpecMaps)->
     Result=case [Map||Map<-SpecMaps,
 		      ApplicationId==maps:get(id,Map)] of
@@ -51,14 +77,51 @@ get_info(Key,ApplicationId,SpecMaps)->
 
 
 %%********************* Repo ************************************
-
+%%--------------------------------------------------------------------
+%% @doc
+%% 
+%% @end
+%%--------------------------------------------------------------------
+is_application_repo_updated(ApplicationDir,ApplicationId,SpecMaps)->
+    {ok,ApplicationName}=get_info(application_name,ApplicationId,SpecMaps),
+    ApplicationLocalRepo=filename:join([ApplicationDir,ApplicationName]),
+    Result= case filelib:is_dir(ApplicationLocalRepo) of
+		false->
+		    {error,["Applications local repo doesnt exists",ApplicationLocalRepo]};			    
+		true->
+			    {ok,is_up_to_date(ApplicationLocalRepo)}
+	    end,
+    Result.
+%%--------------------------------------------------------------------
+%% @doc
+%% 
+%% @end
+%%--------------------------------------------------------------------
+update_application_repo(ApplicationDir,ApplicationId,SpecMaps)->
+    {ok,ApplicationName}=get_info(application_name,ApplicationId,SpecMaps),
+    ApplicationLocalRepo=filename:join([ApplicationDir,ApplicationName]),
+    true=filelib:is_dir(ApplicationLocalRepo),
+    merge(ApplicationLocalRepo).
 
 %%--------------------------------------------------------------------
 %% @doc
 %% 
 %% @end
 %%--------------------------------------------------------------------
-check_update_repo_return_maps(RepoDir,RepoGit)->
+clone_application_repo(ApplicationDir,ApplicationId,SpecMaps)->
+    {ok,ApplicationName}=get_info(application_name,ApplicationId,SpecMaps),
+    ApplicationLocalRepo=filename:join([ApplicationDir,ApplicationName]),
+    file:del_dir_r(ApplicationLocalRepo),
+    ok=file:make_dir(ApplicationLocalRepo),
+    {ok,Git}=get_info(git,ApplicationId,SpecMaps),
+    clone(ApplicationLocalRepo,Git).
+
+%%--------------------------------------------------------------------
+%% @doc
+%% 
+%% @end
+%%--------------------------------------------------------------------
+check_update_repo_return_maps(RepoDir,RepoGit,ApplicationDir)->
     case is_repo_updated(RepoDir) of
 	{error,["RepoDir doesnt exists, need to clone",RepoDir]}->
 	    ok=clone_repo(RepoDir,RepoGit);
@@ -67,7 +130,12 @@ check_update_repo_return_maps(RepoDir,RepoGit)->
 	{ok,true}->
 	    ok
     end,
-    
+    case filelib:is_dir(ApplicationDir) of
+	false->
+	    ok=file:make_dir(ApplicationDir);
+	true->
+	    ok
+    end,
     {ok,AllFileNames}=file:list_dir(RepoDir),
     AllFullFilenames=[filename:join([RepoDir,FileName])||FileName<-AllFileNames],
     HostFiles=[FullFileName||FullFileName<-AllFullFilenames,
@@ -137,8 +205,13 @@ merge(LocalRepo)->
 %%--------------------------------------------------------------------
 
 clone(RepoDir,RepoGit)->
-    []=os:cmd("git clone -q "++RepoGit++" "++RepoDir),
-    ok.
+    Result=case os:cmd("git clone -q "++RepoGit++" "++RepoDir) of
+	       []->
+		   ok;
+	       Reason->
+		   {error,["Failed to clone ",RepoDir,RepoGit,Reason]}
+	   end,
+    Result.
 
 %%--------------------------------------------------------------------
 %% @doc
