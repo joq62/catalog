@@ -16,7 +16,7 @@
 %% --------------------------------------------------------------------
 %% Include files
 %% --------------------------------------------------------------------
--include("host.hrl").
+-include("catalog.hrl").
 
 %% --------------------------------------------------------------------
 %% Function: available_hosts()
@@ -49,9 +49,9 @@ start()->
 %% --------------------------------------------------------------------
 setup()->
     io:format("Start ~p~n",[{?MODULE,?FUNCTION_NAME}]),
-       
-    file:del_dir_r(?MainDir),
-    file:make_dir(?MainDir),
+    
+    file:del_dir_r(?InventoryDir),
+    file:del_dir_r(?CatalogDir),
     ok=application:start(catalog),
     pong=catalog:ping(),
     ok.

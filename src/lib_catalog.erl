@@ -8,24 +8,21 @@
 %%%-------------------------------------------------------------------
 -module(lib_catalog).
   
-
+-include("catalog.hrl").
 -define(UpToDate,"Up to date").
 -define(NotUpToDate,"Not up to date").
  
 %% API
 -export([
-	 get_paths/1,
-	 is_appl_updated/1,
-	 update_appl/1,
-	 clone_appl/3
+	 get_info/3,
+	 check_update_repo_return_maps/2
+	 
 	]).
 
 -export([
-	 get_inventory/1,
-	 get_tags/1,
-	 is_inventory_updated/1,
-	 update_inventory/1,
-	 clone_inventory/2
+	 is_repo_updated/1,
+	 update_repo/1,
+	 clone_repo/2
 	]).
 
 %%%===================================================================
@@ -36,34 +33,60 @@
 
 
 
-%%********************* Appl *****************************************
+%%********************* Host *****************************************    
+get_info(Key,ApplicationId,SpecMaps)->
+    Result=case [Map||Map<-SpecMaps,
+		      ApplicationId==maps:get(id,Map)] of
+	       []->
+		   {error,["ApplicationId doens't exists",ApplicationId]};
+	       [Map]->
+		   case maps:get(Key,Map) of
+		       {badkey,Key}->
+			   {error,["Badkey ",Key]};
+		       Value->
+			   {ok,Value}
+		   end
+	   end,
+    Result. 
+
+
+%%********************* Repo ************************************
+
+
 %%--------------------------------------------------------------------
 %% @doc
 %% 
 %% @end
 %%--------------------------------------------------------------------
-get_paths(ApplDir)->
-    Ebin=filename:join([ApplDir,"ebin"]),
-    Priv=filename:join([ApplDir,"priv"]),
-    true=filelib:is_dir(Ebin),
-    Paths=case filelib:is_dir(Priv) of
-	      true->
-		  [Ebin,Priv];
-	      false->
-		  [Ebin]
-	  end,
-    {ok,Paths}.
+check_update_repo_return_maps(RepoDir,RepoGit)->
+    case is_repo_updated(RepoDir) of
+	{error,["RepoDir doesnt exists, need to clone",RepoDir]}->
+	    ok=clone_repo(RepoDir,RepoGit);
+	{ok,false} ->
+	    ok=update_repo(RepoDir);
+	{ok,true}->
+	    ok
+    end,
+    
+    {ok,AllFileNames}=file:list_dir(RepoDir),
+    AllFullFilenames=[filename:join([RepoDir,FileName])||FileName<-AllFileNames],
+    HostFiles=[FullFileName||FullFileName<-AllFullFilenames,
+			     ?Extension==filename:extension(FullFileName)],
+    FileConsult=[file:consult(HostFile)||HostFile<-HostFiles],
+    HostSpecMaps=[Map||{ok,[Map]}<-FileConsult],
+    {ok,HostSpecMaps}. 
+	       
 %%--------------------------------------------------------------------
 %% @doc
 %% 
 %% @end
 %%--------------------------------------------------------------------
-is_appl_updated(AppDir)->
-    Result=case filelib:is_dir(AppDir) of
+is_repo_updated(RepoDir)->
+    Result=case filelib:is_dir(RepoDir) of
 	       false->
-		   {error,["AppDir doesnt exists, need to clone"]};
+		   {error,["RepoDir doesnt exists, need to clone",RepoDir]};
 	       true->
-		   {ok,is_up_to_date(AppDir)}
+		   {ok,is_up_to_date(RepoDir)}
 	   end,
     Result.
 %%--------------------------------------------------------------------
@@ -71,66 +94,19 @@ is_appl_updated(AppDir)->
 %% 
 %% @end
 %%--------------------------------------------------------------------
-update_appl(AppDir)->
-    true=filelib:is_dir(AppDir),
-    Result=merge(AppDir),   
+update_repo(RepoDir)->
+    true=filelib:is_dir(RepoDir),
+    Result=merge(RepoDir),   
     Result.
 %%--------------------------------------------------------------------
 %% @doc
 %% 
 %% @end
 %%--------------------------------------------------------------------
-clone_appl(ApplId,ApplDir,InventoryFile)->
-    {ok,Info}=file:consult(InventoryFile),
-    [GitPath]=[maps:get(git_path,Map)||Map<-Info,
-				       ApplId=:=maps:get(id,Map)],
-    file:del_dir_r(ApplDir),
-    ok=file:make_dir(ApplDir),
-    ok=clone(ApplDir,GitPath),   
-    ok.
-
-
-%%********************* Inventory ************************************
-%%--------------------------------------------------------------------
-%% @doc
-%% 
-%% @end
-%%--------------------------------------------------------------------
-get_inventory(InventoryFile)->
-    {ok,Info}=file:consult(InventoryFile),
-    ApplicationIdList=[maps:get(id,Map)||Map<-Info],
-    {ok,ApplicationIdList}.
-%%--------------------------------------------------------------------
-%% @doc
-%% 
-%% @end
-%%--------------------------------------------------------------------
-is_inventory_updated(InventoryDir)->
-    Result=case filelib:is_dir(InventoryDir) of
-	       false->
-		   {error,["Inventory doesnt exists, need to clone"]};
-	       true->
-		   {ok,is_up_to_date(InventoryDir)}
-	   end,
-    Result.
-%%--------------------------------------------------------------------
-%% @doc
-%% 
-%% @end
-%%--------------------------------------------------------------------
-update_inventory(InventoryDir)->
-    true=filelib:is_dir(InventoryDir),
-    Result=merge(InventoryDir),   
-    Result.
-%%--------------------------------------------------------------------
-%% @doc
-%% 
-%% @end
-%%--------------------------------------------------------------------
-clone_inventory(InventoryDir,InventoryGit)->
-    file:del_dir_r(InventoryDir),
-    ok=file:make_dir(InventoryDir),
-    Result=clone(InventoryDir,InventoryGit),   
+clone_repo(RepoDir,RepoGit)->
+    file:del_dir_r(RepoDir),
+    ok=file:make_dir(RepoDir),
+    Result=clone(RepoDir,RepoGit),   
     Result.
 
 
@@ -138,19 +114,6 @@ clone_inventory(InventoryDir,InventoryGit)->
 %%%===================================================================
 %%% Internal functions
 %%%===================================================================
-%%--------------------------------------------------------------------
-%% @doc
-%% 
-%% @end
-%%--------------------------------------------------------------------
-
-get_tags(LocalRepo)->
-    TagString=os:cmd("git -C "++LocalRepo++" "++"tag"),
-    T1=[S||S<-string:split(TagString, "\n", all),
-	     []=/=S],
-    Tags=lists:reverse(lists:sort(T1)),
-    Tags.
-
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -173,8 +136,8 @@ merge(LocalRepo)->
 %% @end
 %%--------------------------------------------------------------------
 
-clone(InventoryDir,InventoryGit)->
-    []=os:cmd("git clone -q "++InventoryGit++" "++InventoryDir),
+clone(RepoDir,RepoGit)->
+    []=os:cmd("git clone -q "++RepoGit++" "++RepoDir),
     ok.
 
 %%--------------------------------------------------------------------
