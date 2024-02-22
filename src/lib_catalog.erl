@@ -27,6 +27,8 @@
 	]).
 
 -export([
+	 get_application_app/3,
+	 get_application_paths/3,
 	 is_application_repo_updated/3,
 	 update_application_repo/3,
 	 clone_application_repo/3
@@ -77,6 +79,34 @@ get_info(Key,ApplicationId,SpecMaps)->
 
 
 %%********************* Repo ************************************
+%%--------------------------------------------------------------------
+%% @doc
+%% 
+%% @end
+%%--------------------------------------------------------------------
+get_application_app(ApplicationDir,ApplicationId,SpecMaps)->
+    get_info(app,ApplicationId,SpecMaps).
+
+%%--------------------------------------------------------------------
+%% @doc
+%% 
+%% @end
+%%--------------------------------------------------------------------
+get_application_paths(ApplicationDir,ApplicationId,SpecMaps)->
+    {ok,ApplicationName}=get_info(application_name,ApplicationId,SpecMaps),
+    ApplicationLocalRepo=filename:join([ApplicationDir,ApplicationName]),
+    true=filelib:is_dir(ApplicationLocalRepo),
+    Ebin=filename:join([ApplicationLocalRepo,"ebin"]),
+    true=filelib:is_dir(Ebin),
+    Priv=filename:join([ApplicationLocalRepo,"priv"]),
+    Result=case filelib:is_dir(Priv) of
+	       false->
+		   {ok,[Ebin]};
+	       true->
+		    {ok,[Ebin,Priv]}
+	   end,
+    Result.
+    
 %%--------------------------------------------------------------------
 %% @doc
 %% 

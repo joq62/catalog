@@ -29,6 +29,8 @@
 	]).
 
 -export([
+	 get_application_paths/1,
+	 get_application_app/1,
 	 is_application_repo_updated/1,
 	 update_application_repo/1,
 	 clone_application_repo/1
@@ -77,11 +79,33 @@
 %%%===================================================================
 
 %%********************* Appl *****************************************
+%%--------------------------------------------------------------------
+%% @doc
+%% get the full path to ebin and if presence the priv dirs to application
+%% ApplId  
+%% 
+%% @end
+%%--------------------------------------------------------------------
+-spec get_application_app(ApplicationId :: string()) -> 
+	  {ok,App :: atom()} | {error, Reason :: term()}.
+get_application_app(ApplicationId) ->
+    gen_server:call(?SERVER,{get_application_app,ApplicationId},infinity).
 
 %%--------------------------------------------------------------------
 %% @doc
 %% get the full path to ebin and if presence the priv dirs to application
 %% ApplId  
+%% 
+%% @end
+%%--------------------------------------------------------------------
+-spec get_application_paths(ApplicationId :: string()) -> 
+	  {ok,ListOfPAths:: term()} | {error, Reason :: term()}.
+get_application_paths(ApplicationId) ->
+    gen_server:call(?SERVER,{get_application_paths,ApplicationId},infinity).
+
+%%--------------------------------------------------------------------
+%% @doc
+%%  
 %% 
 %% @end
 %%--------------------------------------------------------------------
@@ -286,6 +310,47 @@ init([]) ->
 	  {stop, Reason :: term(), NewState :: term()}.
 
 %%********************* Appl *****************************************
+
+handle_call({get_application_paths,ApplicationId}, _From, State) ->
+    ApplicationDir=State#state.application_dir,
+    SpecMaps=State#state.spec_maps,
+    Result=try lib_catalog:get_application_paths(ApplicationDir,ApplicationId,SpecMaps) of
+	       {ok,R}->
+		   {ok,R};
+	       {error,Reason}->
+		   {error,Reason}
+	   catch
+	       Event:Reason:Stacktrace ->
+		   {Event,Reason,Stacktrace,?MODULE,?LINE}
+	   end,
+    Reply=case Result of
+	      {ok,Paths}->
+		  {ok,Paths};
+	      ErrorEvent->
+		  ErrorEvent
+	  end,
+    {reply, Reply, State};
+
+handle_call({get_application_app,ApplicationId}, _From, State) ->
+    ApplicationDir=State#state.application_dir,
+    SpecMaps=State#state.spec_maps,
+    Result=try lib_catalog:get_application_app(ApplicationDir,ApplicationId,SpecMaps) of
+	       {ok,R}->
+		   {ok,R};
+	       {error,Reason}->
+		   {error,Reason}
+	   catch
+	       Event:Reason:Stacktrace ->
+		   {Event,Reason,Stacktrace,?MODULE,?LINE}
+	   end,
+    Reply=case Result of
+	      {ok,App}->
+		  {ok,App};
+	      ErrorEvent->
+		  ErrorEvent
+	  end,
+    {reply, Reply, State};
+
 handle_call({get_maps}, _From, State) ->
     Reply=State#state.spec_maps,
     {reply, Reply, State};

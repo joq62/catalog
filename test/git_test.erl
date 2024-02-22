@@ -30,14 +30,38 @@ start()->
     ok=setup(),
     ok=git_repo(),
     ok=git_application(),
+    ok=start_application(),
  
     io:format("Test OK !!! ~p~n",[?MODULE]),
     timer:sleep(1000),
     init:stop(),
     ok.
 
-
+%%--------------------------------------------------------------------
+%% @doc
+%% @spec
+%% @end
+%%--------------------------------------------------------------------
+start_application()->
+    io:format("Start ~p~n",[{?MODULE,?FUNCTION_NAME}]),
     
+    {ok,Paths}=catalog:get_application_paths(?TestApplicationId),
+    ["catalog/application_dir/log/ebin"]=Paths,
+    {ok,App}=catalog:get_application_app(?TestApplicationId),
+    log=App,
+    
+    HostId=net_adm:localhost(),
+    NodeName="n1",
+    Cookie=atom_to_list(erlang:get_cookie()),
+    Args=" -setcookie "++Cookie,
+    {ok,N1}=slave:start(HostId,NodeName,Args),
+    [true]=[rpc:call(N1,code,add_patha,[Path],5000)||Path<-Paths],
+    ok=rpc:call(N1,application,load,[App],5000),
+    ok=rpc:call(N1,application,start,[App],5000),
+    pong=rpc:call(N1,log,ping,[],5000),
+    
+    ok.
+
 %%--------------------------------------------------------------------
 %% @doc
 %% @spec
