@@ -583,7 +583,7 @@ handle_cast(UnMatchedSignal, State) ->
 	  {stop, Reason :: normal | term(), NewState :: term()}.
 
 handle_info(timeout, State) ->
-    io:format("timeout ~p~n",[{?MODULE,?LINE}]),
+%    io:format("timeout ~p~n",[{?MODULE,?LINE}]),
     RepoDir=State#state.repo_dir,
     RepoGit=State#state.repo_git,
     ApplicationDir=State#state.application_dir,
@@ -598,7 +598,7 @@ handle_info(timeout, State) ->
 	   end,
     NewState=case Result of
 		 {ok,SpecMaps}->
-		     io:format("SpecMaps ~p~n",[{SpecMaps,?MODULE,?LINE}]),
+		  %   io:format("SpecMaps ~p~n",[{SpecMaps,?MODULE,?LINE}]),
 		     State#state{spec_maps=SpecMaps};
 		 ErrorEvent->
 		     io:format("ErrorEvent ~p~n",[{ErrorEvent,?MODULE,?LINE}]),
