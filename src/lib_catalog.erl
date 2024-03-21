@@ -172,6 +172,11 @@ check_update_repo_return_maps(RepoDir,RepoGit,ApplicationDir)->
 			     ?Extension==filename:extension(FullFileName)],
     FileConsult=[file:consult(HostFile)||HostFile<-HostFiles],
     HostSpecMaps=[Map||{ok,[Map]}<-FileConsult],
+    %clone to application dir 
+    [clone_application_repo(ApplicationDir,maps:get(application_id,Map),HostSpecMaps)|| Map<-HostSpecMaps],   
+									 
+
+    
     {ok,HostSpecMaps}. 
 	       
 %%--------------------------------------------------------------------
