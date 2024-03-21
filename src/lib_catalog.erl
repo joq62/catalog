@@ -173,7 +173,7 @@ check_update_repo_return_maps(RepoDir,RepoGit,ApplicationDir)->
     FileConsult=[file:consult(HostFile)||HostFile<-HostFiles],
     HostSpecMaps=[Map||{ok,[Map]}<-FileConsult],
     %clone to application dir 
-    [clone_application_repo(ApplicationDir,maps:get(application_id,Map),HostSpecMaps)|| Map<-HostSpecMaps],   
+    [clone_application_repo(ApplicationDir,maps:get(application_name,Map),HostSpecMaps)|| Map<-HostSpecMaps],   
 									 
 
     
