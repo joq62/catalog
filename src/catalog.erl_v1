@@ -7,7 +7,7 @@
 %%% Created : 18 Apr 2023 by c50 <joq62@c50>
 %%%-------------------------------------------------------------------
 -module(catalog). 
-
+ 
 -behaviour(gen_server).
 %%--------------------------------------------------------------------
 %% Include 
@@ -17,24 +17,30 @@
 -include("log.api").
 
 -include("catalog.hrl").
+-include("catalog.resource_discovery").
 
 
 
 %% API
 
 -export([
-	 get_inventory/0,
-	 is_inventory_updated/0,
-	 update_inventory/0,
-	 clone_inventory/0
+	 is_repo_updated/0,
+	 update_repo/0,
+	 clone_repo/0
 	]).
 
 -export([
-	 get_paths/1,
-	 is_appl_updated/1,
-	 update_appl/1,
-	 clone_appl/1
-	 
+	 get_application_paths/1,
+	 get_application_app/1,
+	 is_application_repo_updated/1,
+	 update_application_repo/1,
+	 clone_application_repo/1
+	]).
+-export([
+	 get_info/2,
+	 get_all_ids/0,
+	 get_maps/0,
+	 get_map/1
 	]).
 
 %% admin
@@ -55,21 +61,36 @@
 	 terminate/2, code_change/3, format_status/2]).
 
 -define(SERVER, ?MODULE).
+
+
 		     
 -record(state, {
-		catalog_dir,
-		inventory_dir,
-		inventory_file,
-		inventory_git
+		
+		main_dir,
+	        repo_dir,
+		application_dir,
+		spec_maps,
+	        repo_git
 	        
 	       }).
+
 
 %%%===================================================================
 %%% API
 %%%===================================================================
 
 %%********************* Appl *****************************************
-
+%%--------------------------------------------------------------------
+%% @doc
+%% get the full path to ebin and if presence the priv dirs to application
+%% ApplId  
+%% 
+%% @end
+%%--------------------------------------------------------------------
+-spec get_application_app(ApplicationId :: string()) -> 
+	  {ok,App :: atom()} | {error, Reason :: term()}.
+get_application_app(ApplicationId) ->
+    gen_server:call(?SERVER,{get_application_app,ApplicationId},infinity).
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -78,153 +99,134 @@
 %% 
 %% @end
 %%--------------------------------------------------------------------
--spec get_paths(ApplId :: string()) -> 
-	  {ok,ListOfEbinAndPriv :: term()} | {error, Reason :: term()}.
-get_paths(ApplId) ->
-    gen_server:call(?SERVER,{get_paths,ApplId},infinity).
+-spec get_application_paths(ApplicationId :: string()) -> 
+	  {ok,ListOfPAths:: term()} | {error, Reason :: term()}.
+get_application_paths(ApplicationId) ->
+    gen_server:call(?SERVER,{get_application_paths,ApplicationId},infinity).
 
 %%--------------------------------------------------------------------
 %% @doc
-%% get_inventory   
+%%  
 %% 
 %% @end
 %%--------------------------------------------------------------------
--spec is_appl_updated(ApplId :: string()) -> 
+-spec get_info(Key:: atom(),ApplicationId :: string()) -> 
+	  {ok,Value:: term()} | {error, Reason :: term()}.
+get_info(Key,ApplicationId) ->
+    gen_server:call(?SERVER,{get_info,Key,ApplicationId},infinity).
+
+%%--------------------------------------------------------------------
+%% @doc
+%% get the full path to ebin and if presence the priv dirs to application
+%% ApplId  
+%% 
+%% @end
+%%--------------------------------------------------------------------
+-spec get_all_ids() -> 
+	  {ok,ApplicationIdList :: term()} | {error, Reason :: term()}.
+get_all_ids() ->
+    gen_server:call(?SERVER,{get_all_ids},infinity).
+%%--------------------------------------------------------------------
+%% @doc
+%% get the full path to ebin and if presence the priv dirs to application
+%% ApplId  
+%% 
+%% @end
+%%--------------------------------------------------------------------
+-spec get_maps() -> 
+	  {ok,ApplicationMapsList :: term()} | {error, Reason :: term()}.
+get_maps() ->
+    gen_server:call(?SERVER,{get_maps},infinity).
+
+%%--------------------------------------------------------------------
+%% @doc
+%% get the full path to ebin and if presence the priv dirs to application
+%% ApplId  
+%% 
+%% @end
+%%--------------------------------------------------------------------
+-spec get_map(ApplicationId :: string()) -> 
+	  {ok,ApplicationMap :: map()} | {error, Reason :: term()}.
+get_map(ApplicationId) ->
+    gen_server:call(?SERVER,{get_map,ApplicationId},infinity).
+
+
+%%********************* Repo ************************************
+
+
+%	 is_application_repo_updated/1,
+%	 update_application_repo/1,
+% clone_application_repo/1
+
+
+%%--------------------------------------------------------------------
+%% @doc
+%%    
+%% 
+%% @end
+%%--------------------------------------------------------------------
+-spec is_application_repo_updated(ApplicationId :: string()) -> 
+	  true | false | {error,Reason :: term()}.
+
+is_application_repo_updated(ApplicationId) ->
+    gen_server:call(?SERVER,{is_application_repo_updated,ApplicationId},infinity).
+
+%%--------------------------------------------------------------------
+%% @doc
+%% repo   
+%% 
+%% @end
+%%--------------------------------------------------------------------
+-spec update_application_repo(ApplicationId :: string()) -> 
+	  ok | {error, Reason :: term()}.
+update_application_repo(ApplicationId) ->
+    gen_server:call(?SERVER,{update_application_repo,ApplicationId},infinity).
+
+%%--------------------------------------------------------------------
+%% @doc
+%%    
+%% 
+%% @end
+%%--------------------------------------------------------------------
+-spec clone_application_repo(ApplicationId :: string()) -> 
+	  ok | {error, Reason :: term()}.
+clone_application_repo(ApplicationId) ->
+    gen_server:call(?SERVER,{clone_application_repo,ApplicationId},infinity).
+
+%%--------------------------------------------------------------------
+%% @doc
+%%    
+%% 
+%% @end
+%%--------------------------------------------------------------------
+-spec is_repo_updated() -> 
 	  true | false | {error,Reason :: term()}.
 
 % {error,["Inventory doesnt exists, need to clone"]} .
-is_appl_updated(ApplId) ->
-    gen_server:call(?SERVER,{is_appl_updated,ApplId},infinity).
+is_repo_updated() ->
+    gen_server:call(?SERVER,{is_repo_updated},infinity).
 
 %%--------------------------------------------------------------------
 %% @doc
-%% get_inventory   
+%% repo   
 %% 
 %% @end
 %%--------------------------------------------------------------------
--spec update_appl(ApplId :: string()) -> 
+-spec update_repo() -> 
 	  ok | {error, Reason :: term()}.
-update_appl(ApplId) ->
-    gen_server:call(?SERVER,{update_appl,ApplId},infinity).
+update_repo() ->
+    gen_server:call(?SERVER,{update_repo},infinity).
 
 %%--------------------------------------------------------------------
 %% @doc
-%% get_inventory   
+%%    
 %% 
 %% @end
 %%--------------------------------------------------------------------
--spec clone_appl(ApplId :: string()) -> 
+-spec clone_repo() -> 
 	  ok | {error, Reason :: term()}.
-clone_appl(ApplId) ->
-    gen_server:call(?SERVER,{clone_appl,ApplId},infinity).
-
-
-
-
-
-%%********************* Inventory ************************************
-
-%%--------------------------------------------------------------------
-%% @doc
-%% get_inventory   
-%% 
-%% @end
-%%--------------------------------------------------------------------
--spec get_inventory() -> 
-	  {ok,ListOfApplications :: term()} | {error, Reason :: term()}.
-get_inventory() ->
-    gen_server:call(?SERVER,{get_inventory},infinity).
-
-%%--------------------------------------------------------------------
-%% @doc
-%% get_inventory   
-%% 
-%% @end
-%%--------------------------------------------------------------------
--spec is_inventory_updated() -> 
-	  true | false | {error,Reason :: term()}.
-
-% {error,["Inventory doesnt exists, need to clone"]} .
-is_inventory_updated() ->
-    gen_server:call(?SERVER,{is_inventory_updated},infinity).
-
-%%--------------------------------------------------------------------
-%% @doc
-%% get_inventory   
-%% 
-%% @end
-%%--------------------------------------------------------------------
--spec update_inventory() -> 
-	  ok | {error, Reason :: term()}.
-update_inventory() ->
-    gen_server:call(?SERVER,{update_inventory},infinity).
-
-%%--------------------------------------------------------------------
-%% @doc
-%% get_inventory   
-%% 
-%% @end
-%%--------------------------------------------------------------------
--spec clone_inventory() -> 
-	  ok | {error, Reason :: term()}.
-clone_inventory() ->
-    gen_server:call(?SERVER,{clone_inventory},infinity).
-
-
-%%--------------------------------------------------------------------
-%% @doc
-%% Return all repos   
-%% 
-%% @end
-%%--------------------------------------------------------------------
--spec repos() -> 
-	  {ok,ListOfRepos :: term()} | {error, Reason :: term()}.
-repos() ->
-    gen_server:call(?SERVER,{repos},infinity).
-
-
-%%--------------------------------------------------------------------
-%% @doc
-%% Returns the path to "ebin" dir and if needed "priv" dir 
-%% related to Application Id  
-%% 
-%% @end
-%%--------------------------------------------------------------------
--spec paths(ApplicationId :: string()) -> 
-	  {ok,ListOfPaths :: term()} | {error, Reason :: term()}.
-paths(ApplicationId) ->
-    gen_server:call(?SERVER,{paths,ApplicationId},infinity).
-%%--------------------------------------------------------------------
-%% @doc
-%% Resturn the app for application ApplicationId  
-%% 
-%% @end
-%%--------------------------------------------------------------------
--spec app(ApplicationId::string()) -> 
-	  {ok,App::atom()} | {error, Reason :: term()}.
-app(ApplicationId) ->
-    gen_server:call(?SERVER,{app,ApplicationId},infinity).
-%%--------------------------------------------------------------------
-%% @doc
-%% git merge for the repo LocalRepo 
-%% 
-%% @end
-%%--------------------------------------------------------------------
--spec merge(LocalRepo::string()) -> ok | 
-	  {error, Reason :: term()}.
-merge(LocalRepo) ->
-    gen_server:call(?SERVER,{merge,LocalRepo},infinity).
-
-%%--------------------------------------------------------------------
-%% @doc
-%% stops all kubeletes and deletes their dirs 
-%% 
-%% @end
-%%--------------------------------------------------------------------
--spec delete_cluster(ClusterId::string()) -> ok | 
-	  {error, Error :: term()}.
-delete_cluster(ClusterId) ->
-    gen_server:call(?SERVER,{delete_cluster,ClusterId},infinity).
+clone_repo() ->
+    gen_server:call(?SERVER,{clone_repo},infinity).
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -234,15 +236,6 @@ delete_cluster(ClusterId) ->
 %%--------------------------------------------------------------------
 start()->
     application:start(?MODULE).
-
-
-%%--------------------------------------------------------------------
-%% @doc
-%% 
-%% @end
-%%--------------------------------------------------------------------
-kill()->
-    gen_server:call(?SERVER, {kill},infinity).
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -287,14 +280,16 @@ stop()-> gen_server:stop(?SERVER).
 	  ignore.
 
 init([]) ->
-   
-    file:make_dir(?CatalogDir),
+    
+    
 %    ?LOG_NOTICE("Server started ",[?MODULE]),
     {ok, #state{
-	    catalog_dir=?CatalogDir,
-	    inventory_dir=?InventoryDir,
-	    inventory_file=?InventoryFile,
-	    inventory_git=?InventoryGit
+	    main_dir=?MainDir,
+	    repo_dir=?RepoDir,
+	    application_dir=?ApplicationDir,
+	    spec_maps=[],
+	    repo_git=?RepoGit
+	  
 	    
 	   },0}.
 
@@ -316,9 +311,11 @@ init([]) ->
 	  {stop, Reason :: term(), NewState :: term()}.
 
 %%********************* Appl *****************************************
-handle_call({get_paths,ApplId}, _From, State) ->
-    ApplDir=filename:join([State#state.catalog_dir,ApplId]),
-    Result=try lib_catalog:get_paths(ApplDir) of
+
+handle_call({get_application_paths,ApplicationId}, _From, State) ->
+    ApplicationDir=State#state.application_dir,
+    SpecMaps=State#state.spec_maps,
+    Result=try lib_catalog:get_application_paths(ApplicationDir,ApplicationId,SpecMaps) of
 	       {ok,R}->
 		   {ok,R};
 	       {error,Reason}->
@@ -329,19 +326,16 @@ handle_call({get_paths,ApplId}, _From, State) ->
 	   end,
     Reply=case Result of
 	      {ok,Paths}->
-		 % io:format("InventoryList ~p~n",[{InventoryList,?MODULE,?LINE}]),
-		  NewState=State,
 		  {ok,Paths};
 	      ErrorEvent->
-		%  io:format("ErrorEvent ~p~n",[{ErrorEvent,?MODULE,?LINE}]),
-		  NewState=State,
-		  {error,ErrorEvent}
+		  ErrorEvent
 	  end,
-    {reply, Reply, NewState};
+    {reply, Reply, State};
 
-handle_call({is_appl_updated,ApplId}, _From, State) ->
-    ApplDir=filename:join([State#state.catalog_dir,ApplId]),
-    Result=try lib_catalog:is_inventory_updated(ApplDir) of
+handle_call({get_application_app,ApplicationId}, _From, State) ->
+    ApplicationDir=State#state.application_dir,
+    SpecMaps=State#state.spec_maps,
+    Result=try lib_catalog:get_application_app(ApplicationDir,ApplicationId,SpecMaps) of
 	       {ok,R}->
 		   {ok,R};
 	       {error,Reason}->
@@ -351,69 +345,24 @@ handle_call({is_appl_updated,ApplId}, _From, State) ->
 		   {Event,Reason,Stacktrace,?MODULE,?LINE}
 	   end,
     Reply=case Result of
-	      {ok,IsUpdated}->
-		  %io:format("IsUpdated ~p~n",[{IsUpdated,?MODULE,?LINE}]),
-		  NewState=State,
-		  IsUpdated;
+	      {ok,App}->
+		  {ok,App};
 	      ErrorEvent->
-		%  io:format("ErrorEvent ~p~n",[{ErrorEvent,?MODULE,?LINE}]),
-		  NewState=State,
-		  {error,ErrorEvent}
+		  ErrorEvent
 	  end,
-    {reply, Reply, NewState};
+    {reply, Reply, State};
 
-handle_call({update_appl,ApplId}, _From, State) ->
-    ApplDir=filename:join([State#state.catalog_dir,ApplId]),
-    Result=try lib_catalog:update_inventory(ApplDir) of
-	       ok->
-		   ok;
-	       {error,Reason}->
-		   {error,Reason}
-	   catch
-	       Event:Reason:Stacktrace ->
-		   {Event,Reason,Stacktrace,?MODULE,?LINE}
-	   end,
-    Reply=case Result of
-	      ok->
-		  %io:format("UpdateResult ~p~n",[{UpdateResult,?MODULE,?LINE}]),
-		  NewState=State,
-		  ok;
-	      ErrorEvent->
-		  io:format("ErrorEvent ~p~n",[{ErrorEvent,?MODULE,?LINE}]),
-		  NewState=State,
-		  {error,ErrorEvent}
-	  end,
-    {reply, Reply, NewState};
+handle_call({get_maps}, _From, State) ->
+    Reply=State#state.spec_maps,
+    {reply, Reply, State};
 
-handle_call({clone_appl,ApplId}, _From, State) ->
-    ApplDir=filename:join([State#state.catalog_dir,ApplId]),
-    InventoryFile=State#state.inventory_file,
-    Result=try lib_catalog:clone_appl(ApplId,ApplDir,InventoryFile) of
-	       ok->
-		   ok;
-	       {error,Reason}->
-		   {error,Reason}
-	   catch
-	       Event:Reason:Stacktrace ->
-		   {Event,Reason,Stacktrace,?MODULE,?LINE}
-	   end,
-    Reply=case Result of
-	      ok->
-		%  io:format("CloneResult ~p~n",[{ok,?MODULE,?LINE}]),
-		  NewState=State,
-		  ok;
-	      ErrorEvent->
-		  io:format("ErrorEvent ~p~n",[{ErrorEvent,?MODULE,?LINE}]),
-		  NewState=State,
-		  {error,ErrorEvent}
-	  end,
-    {reply, Reply, NewState};
+handle_call({get_all_ids}, _From, State) ->
+    Reply= [maps:get(id,Map)||Map<-State#state.spec_maps],
+    {reply, Reply, State};
 
-%%********************* Inventory ************************************
-    
-handle_call({get_inventory}, _From, State) ->
-    InventoryFile=State#state.inventory_file,
-    Result=try lib_catalog:get_inventory(InventoryFile) of
+handle_call({get_map,ApplicationId}, _From, State) ->
+    SpecMaps=State#state.spec_maps,
+    Result=try lib_catalog:get_map(ApplicationId,SpecMaps) of
 	       {ok,R}->
 		   {ok,R};
 	       {error,Reason}->
@@ -423,20 +372,38 @@ handle_call({get_inventory}, _From, State) ->
 		   {Event,Reason,Stacktrace,?MODULE,?LINE}
 	   end,
     Reply=case Result of
-	      {ok,InventoryList}->
-		 % io:format("InventoryList ~p~n",[{InventoryList,?MODULE,?LINE}]),
-		  NewState=State,
-		  {ok,InventoryList};
+	      {ok,Map}->
+		  {ok,Map};
 	      ErrorEvent->
-		  io:format("ErrorEvent ~p~n",[{ErrorEvent,?MODULE,?LINE}]),
-		  NewState=State,
-		  {error,ErrorEvent}
+		  ErrorEvent
 	  end,
-    {reply, Reply, NewState};
+    {reply, Reply, State};
 
-handle_call({is_inventory_updated}, _From, State) ->
-    InventoryDir=State#state.inventory_dir,
-    Result=try lib_catalog:is_inventory_updated(InventoryDir) of
+handle_call({get_info,Key,ApplicationId}, _From, State) ->
+    SpecMaps=State#state.spec_maps,
+    Result=try lib_catalog:get_info(Key,ApplicationId,SpecMaps) of
+	       {ok,R}->
+		   {ok,R};
+	       {error,Reason}->
+		   {error,Reason}
+	   catch
+	       Event:Reason:Stacktrace ->
+		   {Event,Reason,Stacktrace,?MODULE,?LINE}
+	   end,
+    Reply=case Result of
+	      {ok,Value}->
+		  {ok,Value};
+	      ErrorEvent->
+		  ErrorEvent
+	  end,
+    {reply, Reply, State};
+
+%%********************* Repo ************************************
+
+handle_call({is_application_repo_updated,ApplicationId}, _From, State) ->
+    ApplicationDir=State#state.application_dir,
+    SpecMaps=State#state.spec_maps,
+    Result=try lib_catalog:is_application_repo_updated(ApplicationDir,ApplicationId,SpecMaps) of
 	       {ok,R}->
 		   {ok,R};
 	       {error,Reason}->
@@ -453,13 +420,14 @@ handle_call({is_inventory_updated}, _From, State) ->
 	      ErrorEvent->
 		  io:format("ErrorEvent ~p~n",[{ErrorEvent,?MODULE,?LINE}]),
 		  NewState=State,
-		  {error,ErrorEvent}
+		  ErrorEvent
 	  end,
     {reply, Reply, NewState};
 
-handle_call({update_inventory}, _From, State) ->
-    InventoryDir=State#state.inventory_dir,
-    Result=try lib_catalog:update_inventory(InventoryDir) of
+handle_call({update_application_repo,ApplicationId}, _From, State) ->
+    ApplicationDir=State#state.application_dir,
+    SpecMaps=State#state.spec_maps,
+    Result=try lib_catalog:update_application_repo(ApplicationDir,ApplicationId,SpecMaps) of
 	       ok->
 		   ok;
 	       {error,Reason}->
@@ -476,14 +444,14 @@ handle_call({update_inventory}, _From, State) ->
 	      ErrorEvent->
 		  io:format("ErrorEvent ~p~n",[{ErrorEvent,?MODULE,?LINE}]),
 		  NewState=State,
-		  {error,ErrorEvent}
+		  ErrorEvent
 	  end,
     {reply, Reply, NewState};
 
-handle_call({clone_inventory}, _From, State) ->
-    InventoryDir=State#state.inventory_dir,
-    InventoryGit=State#state.inventory_git,
-    Result=try lib_catalog:clone_inventory(InventoryDir,InventoryGit) of
+handle_call({clone_application_repo,ApplicationId}, _From, State) ->
+    ApplicationDir=State#state.application_dir,
+    SpecMaps=State#state.spec_maps,
+    Result=try lib_catalog:clone_application_repo(ApplicationDir,ApplicationId,SpecMaps) of
 	       ok->
 		   ok;
 	       {error,Reason}->
@@ -500,7 +468,77 @@ handle_call({clone_inventory}, _From, State) ->
 	      ErrorEvent->
 		  io:format("ErrorEvent ~p~n",[{ErrorEvent,?MODULE,?LINE}]),
 		  NewState=State,
-		  {error,ErrorEvent}
+		 ErrorEvent
+	  end,
+    {reply, Reply, NewState};
+
+handle_call({is_repo_updated}, _From, State) ->
+    RepoDir=State#state.repo_dir,
+    Result=try lib_catalog:is_repo_updated(RepoDir) of
+	       {ok,R}->
+		   {ok,R};
+	       {error,Reason}->
+		   {error,Reason}
+	   catch
+	       Event:Reason:Stacktrace ->
+		   {Event,Reason,Stacktrace,?MODULE,?LINE}
+	   end,
+    Reply=case Result of
+	      {ok,IsUpdated}->
+		  %io:format("IsUpdated ~p~n",[{IsUpdated,?MODULE,?LINE}]),
+		  NewState=State,
+		  IsUpdated;
+	      ErrorEvent->
+		  io:format("ErrorEvent ~p~n",[{ErrorEvent,?MODULE,?LINE}]),
+		  NewState=State,
+		  ErrorEvent
+	  end,
+    {reply, Reply, NewState};
+
+handle_call({update_repo}, _From, State) ->
+    RepoDir=State#state.repo_dir,
+    Result=try lib_catalog:update_repo(RepoDir) of
+	       ok->
+		   ok;
+	       {error,Reason}->
+		   {error,Reason}
+	   catch
+	       Event:Reason:Stacktrace ->
+		   {Event,Reason,Stacktrace,?MODULE,?LINE}
+	   end,
+    Reply=case Result of
+	      ok->
+		  %io:format("UpdateResult ~p~n",[{UpdateResult,?MODULE,?LINE}]),
+		  NewState=State,
+		  ok;
+	      ErrorEvent->
+		  io:format("ErrorEvent ~p~n",[{ErrorEvent,?MODULE,?LINE}]),
+		  NewState=State,
+		  ErrorEvent
+	  end,
+    {reply, Reply, NewState};
+
+handle_call({clone_repo}, _From, State) ->
+    RepoDir=State#state.repo_dir,
+    RepoGit=State#state.repo_git,
+    Result=try lib_catalog:clone_repo(RepoDir,RepoGit) of
+	       ok->
+		   ok;
+	       {error,Reason}->
+		   {error,Reason}
+	   catch
+	       Event:Reason:Stacktrace ->
+		   {Event,Reason,Stacktrace,?MODULE,?LINE}
+	   end,
+    Reply=case Result of
+	      ok->
+		%  io:format("CloneResult ~p~n",[{ok,?MODULE,?LINE}]),
+		  NewState=State,
+		  ok;
+	      ErrorEvent->
+		  io:format("ErrorEvent ~p~n",[{ErrorEvent,?MODULE,?LINE}]),
+		  NewState=State,
+		  ErrorEvent
 	  end,
     {reply, Reply, NewState};
  
@@ -545,10 +583,31 @@ handle_cast(UnMatchedSignal, State) ->
 	  {stop, Reason :: normal | term(), NewState :: term()}.
 
 handle_info(timeout, State) ->
-    io:format("timeout ~p~n",[{?MODULE,?LINE}]),
-   
+%    io:format("timeout ~p~n",[{?MODULE,?LINE}]),
+    RepoDir=State#state.repo_dir,
+    RepoGit=State#state.repo_git,
+    ApplicationDir=State#state.application_dir,
+    Result=try lib_catalog:check_update_repo_return_maps(RepoDir,RepoGit,ApplicationDir) of
+	       {ok,R}->
+		   {ok,R};
+	       {error,Reason}->
+		   {error,Reason}
+	   catch
+	       Event:Reason:Stacktrace ->
+		   {Event,Reason,Stacktrace,?MODULE,?LINE}
+	   end,
+    NewState=case Result of
+		 {ok,SpecMaps}->
+		  %   io:format("SpecMaps ~p~n",[{SpecMaps,?MODULE,?LINE}]),
+		     State#state{spec_maps=SpecMaps};
+		 ErrorEvent->
+		     io:format("ErrorEvent ~p~n",[{ErrorEvent,?MODULE,?LINE}]),
+		     State
+	     end,
     
-    {noreply, State};
+    initial_trade_resources(),
+
+    {noreply, NewState};
 
 
 handle_info(Info, State) ->
@@ -598,3 +657,14 @@ format_status(_Opt, Status) ->
 %%%===================================================================
 %%% Internal functions
 %%%===================================================================
+%%--------------------------------------------------------------------
+%% @doc
+%%
+%% @end
+%%--------------------------------------------------------------------
+initial_trade_resources()->
+    [rd:add_local_resource(ResourceType,Resource)||{ResourceType,Resource}<-?LocalResourceTuples],
+    [rd:add_target_resource_type(TargetType)||TargetType<-?TargetTypes],
+    rd:trade_resources(),
+    timer:sleep(3000),
+    ok.
