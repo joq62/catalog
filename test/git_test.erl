@@ -31,7 +31,7 @@ start()->
     
     ok=setup(),
     ok=test1(),
-    loop(false),
+  %  loop(false),
 
     io:format("Test OK !!! ~p~n",[?MODULE]),
 %    timer:sleep(1000),

@@ -29,7 +29,8 @@
 	 is_repo_updated/0,
 	 update_repo/0,
 	 clone/0,
-	 delete/0
+	 delete/0,
+	 update/0
 	]).
 
 -export([
@@ -164,6 +165,16 @@ update_repo_dir(RepoDir) ->
 % {error,["Inventory doesnt exists, need to clone"]} .
 update_git_path(GitPath) ->
     gen_server:call(?SERVER,{update_git_path,GitPath},infinity).
+
+%%--------------------------------------------------------------------
+%% @doc
+%% 
+%% @end
+%%--------------------------------------------------------------------
+-spec update() -> ok | Error::term().
+update()-> 
+    gen_server:call(?SERVER, {update},infinity).
+
 
 
 %%--------------------------------------------------------------------
@@ -324,8 +335,7 @@ handle_call({clone}, _From, State) ->
 	  end,
     {reply, Reply,State};
 
-
-    
+  
 handle_call({is_repo_updated}, _From, State) ->
     RepoDir=State#state.repo_dir,
     Result=try rd:call(git_handler,is_repo_updated,[RepoDir],5000) of 
@@ -346,6 +356,28 @@ handle_call({is_repo_updated}, _From, State) ->
 	  end,
     {reply, Reply, State};
 
+
+
+handle_call({update}, _From, State) ->
+    io:format(" ~p~n",[{?MODULE,?FUNCTION_NAME,?LINE}]),
+    RepoDir=State#state.repo_dir,
+    GitPath=State#state.git_path,
+    ApplicationDir=State#state.application_dir,
+    Reply=try lib_catalog:init(RepoDir,GitPath,ApplicationDir) of
+	      ok->
+		  ok;
+	      {error,Reason}->
+		  {error,Reason}
+	  catch
+	      Event:Reason:Stacktrace ->
+		  {Event,Reason,Stacktrace,?MODULE,?LINE}
+	  end,
+
+    io:format("get all filenames ~p~n",[{rd:call(git_handler,all_filenames,[RepoDir],5000),?MODULE,?LINE}]),
+    spawn(fun()->lib_catalog:timer_to_call_update(?Interval) end),
+    {reply, Reply, State};
+
+
 handle_call({update_repo_dir,RepoDir}, _From, State) ->
     NewState=State#state{repo_dir=RepoDir},
     Reply=ok,
@@ -355,6 +387,7 @@ handle_call({update_git_path,GitPath}, _From, State) ->
     NewState=State#state{git_path=GitPath},
     Reply=ok,
     {reply, Reply, NewState};
+
 
 %%--------------------------------------------------------------------
 
@@ -375,6 +408,7 @@ handle_call(UnMatchedSignal, From, State) ->
 %% Handling cast messages
 %% @end
 %%--------------------------------------------------------------------
+
 handle_cast({stop}, State) ->
     
     {stop,normal,ok,State};
@@ -410,7 +444,7 @@ handle_info(timeout, State) ->
 	   Event:Reason:Stacktrace ->
 	       {Event,Reason,Stacktrace,?MODULE,?LINE}
        end,
-    ok=initial_trade_resources(),
+    spawn(fun()->lib_catalog:timer_to_call_update(?Interval) end),
     {noreply, State};
 
 

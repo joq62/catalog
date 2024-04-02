@@ -4,7 +4,9 @@
 -define(RepoGit,"https://github.com/joq62/catalog_specs.git").
 -define(RepoDir,"catalog_specs").
 -define(ApplicationDir,"application_dir").
-
+-define(Interval,10000).
 %-define(ApplicationDir,"catalog/application_dir").
+%-define(Extension,".application").
 
--define(Extension,".application").
+
+
