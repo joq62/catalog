@@ -78,6 +78,8 @@ test1()->
     {error,_,_,_,_}=catalog:read_file("glurk.application"),
     {error,["Already updated ",?RepoDir]}=catalog:update_repo(),
     {ok,"divi.application"}=catalog:which_filename(divi),
+    {ok,["application_dir/host/ebin"]}=catalog:get_application_paths("host.application"),
+    {ok,log}=catalog:get_application_app("log.application"),
     
     ok.
 %% --------------------------------------------------------------------

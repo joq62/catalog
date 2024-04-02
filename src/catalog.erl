@@ -27,6 +27,9 @@
 	 read_file/1,
 	 which_filename/1,
 	 
+	 get_application_paths/1,
+	 get_application_app/1,
+	 
 	 is_repo_updated/0,
 	 update_repo/0,
 	 clone/0,
@@ -69,6 +72,32 @@
 %%%===================================================================
 %%% API
 %%%===================================================================
+
+
+%%--------------------------------------------------------------------
+%% @doc
+%% 
+%% 
+%% @end
+%%--------------------------------------------------------------------
+-spec  get_application_paths(FileName ::string()) -> 
+	  {ok,Paths::term()} | {error,Reason :: term()}.
+
+get_application_paths(FileName) ->
+    gen_server:call(?SERVER,{get_application_paths,FileName},infinity).
+
+%%--------------------------------------------------------------------
+%% @doc
+%% 
+%% 
+%% @end
+%%--------------------------------------------------------------------
+-spec  get_application_app(FileName ::string()) -> 
+	  {ok,App::atom()} | {error,Reason :: term()}.
+
+get_application_app(FileName) ->
+    gen_server:call(?SERVER,{get_application_app,FileName},infinity).
+
 %%--------------------------------------------------------------------
 %% @doc
 %% Reads the filenames in the RepoDir   
@@ -374,6 +403,46 @@ handle_call({is_repo_updated}, _From, State) ->
 handle_call({which_filename,App}, _From, State) ->
     RepoDir=State#state.repo_dir,
     Result=try lib_catalog:which_filename(RepoDir,App) of 
+	       {ok,R}->
+		   {ok,R};
+	       Error->
+		   Error
+	   catch
+	       Event:Reason:Stacktrace ->
+		   {Event,Reason,Stacktrace,?MODULE,?LINE}
+	   end,
+    Reply=case Result of
+	      {ok,Filename}->
+		  %io:format("IsUpdated ~p~n",[{IsUpdated,?MODULE,?LINE}]),
+		  {ok,Filename};
+	      ErrorEvent->
+		  ErrorEvent
+	  end,
+    {reply, Reply, State};
+
+handle_call({get_application_paths,FileName}, _From, State) ->
+    RepoDir=State#state.repo_dir,
+    ApplicationDir=State#state.application_dir,
+    Result=try lib_catalog:get_application_paths(RepoDir,ApplicationDir,FileName) of 
+	       {ok,R}->
+		   {ok,R};
+	       Error->
+		   Error
+	   catch
+	       Event:Reason:Stacktrace ->
+		   {Event,Reason,Stacktrace,?MODULE,?LINE}
+	   end,
+    Reply=case Result of
+	      {ok,Filename}->
+		  %io:format("IsUpdated ~p~n",[{IsUpdated,?MODULE,?LINE}]),
+		  {ok,Filename};
+	      ErrorEvent->
+		  ErrorEvent
+	  end,
+    {reply, Reply, State};
+handle_call({get_application_app,FileName}, _From, State) ->
+    RepoDir=State#state.repo_dir,
+    Result=try lib_catalog:get_application_app(RepoDir,FileName) of 
 	       {ok,R}->
 		   {ok,R};
 	       Error->
