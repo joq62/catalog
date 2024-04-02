@@ -77,6 +77,7 @@ test1()->
     divi=maps:get(app,Map),
     {error,_,_,_,_}=catalog:read_file("glurk.application"),
     {error,["Already updated ",?RepoDir]}=catalog:update_repo(),
+    {ok,"divi.application"}=catalog:which_filename(divi),
     
     ok.
 %% --------------------------------------------------------------------

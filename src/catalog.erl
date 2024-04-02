@@ -25,6 +25,7 @@
 -export([
 	 all_filenames/0,
 	 read_file/1,
+	 which_filename/1,
 	 
 	 is_repo_updated/0,
 	 update_repo/0,
@@ -68,6 +69,19 @@
 %%%===================================================================
 %%% API
 %%%===================================================================
+%%--------------------------------------------------------------------
+%% @doc
+%% Reads the filenames in the RepoDir   
+%% 
+%% @end
+%%--------------------------------------------------------------------
+-spec which_filename(App::atom()) -> 
+	  {ok,FileName::string()} | {error,Reason :: term()}.
+
+which_filename(App) ->
+    gen_server:call(?SERVER,{which_filename,App},infinity).
+
+
 %%--------------------------------------------------------------------
 %% @doc
 %% Reads the filenames in the RepoDir   
@@ -351,6 +365,27 @@ handle_call({is_repo_updated}, _From, State) ->
 	      {ok,IsUpdated}->
 		  %io:format("IsUpdated ~p~n",[{IsUpdated,?MODULE,?LINE}]),
 		   IsUpdated;
+	      ErrorEvent->
+		  ErrorEvent
+	  end,
+    {reply, Reply, State};
+
+
+handle_call({which_filename,App}, _From, State) ->
+    RepoDir=State#state.repo_dir,
+    Result=try lib_catalog:which_filename(RepoDir,App) of 
+	       {ok,R}->
+		   {ok,R};
+	       Error->
+		   Error
+	   catch
+	       Event:Reason:Stacktrace ->
+		   {Event,Reason,Stacktrace,?MODULE,?LINE}
+	   end,
+    Reply=case Result of
+	      {ok,Filename}->
+		  %io:format("IsUpdated ~p~n",[{IsUpdated,?MODULE,?LINE}]),
+		  {ok,Filename};
 	      ErrorEvent->
 		  ErrorEvent
 	  end,

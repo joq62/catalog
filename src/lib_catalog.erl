@@ -16,6 +16,7 @@
 	 
 	 init/3,
 	 update/3,
+	 which_filename/2,
 	 timer_to_call_update/1
 	
 	]).
@@ -27,6 +28,32 @@
 %%%===================================================================
 %%% API
 %%%===================================================================
+%%--------------------------------------------------------------------
+%% @doc
+%% 
+%% @end
+%%--------------------------------------------------------------------
+which_filename(RepoDir,App)->
+    {ok,AllFileNames}=rd:call(git_handler,all_filenames,[RepoDir],5000),
+    find_filename(AllFileNames,RepoDir,App).
+
+find_filename(AllFileNames,RepoDir,App)->
+    find_filename(AllFileNames,RepoDir,App,false).
+
+find_filename(_AllFileNames,_RepoDir,_App,{ok,FileName})->
+    {ok,FileName};
+find_filename([],_RepoDir,_App,Found)->
+    Found;
+find_filename([FileName|T],RepoDir,App,false)->
+    {ok,[Map]}=rd:call(git_handler,read_file,[RepoDir,FileName],5000),
+    NewAcc=case maps:get(app,Map) of
+	       App->
+		   {ok,FileName};
+	       _ ->
+		   false
+	   end,
+    find_filename(T,RepoDir,App,NewAcc).
+
 %%--------------------------------------------------------------------
 %% @doc
 %% 
