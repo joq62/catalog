@@ -496,7 +496,7 @@ handle_call({get_application_name,FileName}, _From, State) ->
 
 
 handle_call({update}, _From, State) ->
-    io:format(" ~p~n",[{?MODULE,?FUNCTION_NAME,?LINE}]),
+  %  io:format(" ~p~n",[{?MODULE,?FUNCTION_NAME,?LINE}]),
     RepoDir=State#state.repo_dir,
     GitPath=State#state.git_path,
     ApplicationDir=State#state.application_dir,
@@ -510,7 +510,7 @@ handle_call({update}, _From, State) ->
 		  {Event,Reason,Stacktrace,?MODULE,?LINE}
 	  end,
 
-    io:format("get all filenames ~p~n",[{rd:call(git_handler,all_filenames,[RepoDir],5000),?MODULE,?LINE}]),
+   % io:format("get all filenames ~p~n",[{rd:call(git_handler,all_filenames,[RepoDir],5000),?MODULE,?LINE}]),
     spawn(fun()->lib_catalog:timer_to_call_update(?Interval) end),
     {reply, Reply, State};
 
