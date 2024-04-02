@@ -80,6 +80,7 @@ test1()->
     {ok,"divi.application"}=catalog:which_filename(divi),
     {ok,["application_dir/host/ebin"]}=catalog:get_application_paths("host.application"),
     {ok,log}=catalog:get_application_app("log.application"),
+    {ok,"log"}=catalog:get_application_name("log.application"),
     
     ok.
 %% --------------------------------------------------------------------

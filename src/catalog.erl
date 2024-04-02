@@ -29,6 +29,7 @@
 	 
 	 get_application_paths/1,
 	 get_application_app/1,
+	 get_application_name/1,
 	 
 	 is_repo_updated/0,
 	 update_repo/0,
@@ -73,6 +74,18 @@
 %%% API
 %%%===================================================================
 
+
+%%--------------------------------------------------------------------
+%% @doc
+%% 
+%% 
+%% @end
+%%--------------------------------------------------------------------
+-spec  get_application_name(FileName ::string()) -> 
+	  {ok,ApplicationName::string()} | {error,Reason :: term()}.
+
+get_application_name(FileName) ->
+    gen_server:call(?SERVER,{get_application_name,FileName},infinity).
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -443,6 +456,26 @@ handle_call({get_application_paths,FileName}, _From, State) ->
 handle_call({get_application_app,FileName}, _From, State) ->
     RepoDir=State#state.repo_dir,
     Result=try lib_catalog:get_application_app(RepoDir,FileName) of 
+	       {ok,R}->
+		   {ok,R};
+	       Error->
+		   Error
+	   catch
+	       Event:Reason:Stacktrace ->
+		   {Event,Reason,Stacktrace,?MODULE,?LINE}
+	   end,
+    Reply=case Result of
+	      {ok,Filename}->
+		  %io:format("IsUpdated ~p~n",[{IsUpdated,?MODULE,?LINE}]),
+		  {ok,Filename};
+	      ErrorEvent->
+		  ErrorEvent
+	  end,
+    {reply, Reply, State};
+
+handle_call({get_application_name,FileName}, _From, State) ->
+    RepoDir=State#state.repo_dir,
+    Result=try lib_catalog:get_application_name(RepoDir,FileName) of 
 	       {ok,R}->
 		   {ok,R};
 	       Error->

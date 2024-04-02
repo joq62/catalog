@@ -19,6 +19,7 @@
 	 which_filename/2,
 	 get_application_paths/3,
 	 get_application_app/2,
+	 get_application_name/2,
 	 timer_to_call_update/1
 	
 	]).
@@ -30,6 +31,21 @@
 %%%===================================================================
 %%% API
 %%%===================================================================
+%%--------------------------------------------------------------------
+%% @doc
+%% 
+%% @end
+%%--------------------------------------------------------------------
+get_application_name(CatalogRepoDir,FileName)->
+    Result=case rd:call(git_handler,read_file,[CatalogRepoDir,FileName],5000) of
+	       {ok,[Info]}->
+		   ApplicationName=maps:get(application_name,Info),
+		   {ok,ApplicationName};
+	       Error->
+		   {error,Error}
+	   end,
+    Result.
+
 %%--------------------------------------------------------------------
 %% @doc
 %% 
@@ -57,12 +73,12 @@ get_application_paths(CatalogRepoDir,ApplicationDir,FileName)->
 		   RepoDir=maps:get(application_name,Info),
 		   Ebin=filename:join([ApplicationDir,RepoDir,"ebin"]),
 		   Priv=filename:join([ApplicationDir,RepoDir,"priv"]),
-		   Paths=case filelib:is_dir(Priv) of
-			     false->
-				 {ok,[Ebin]};
-			     true->
-				 {ok,[Ebin,Priv]}
-			 end;
+		   case filelib:is_dir(Priv) of
+		       false->
+			   {ok,[Ebin]};
+		       true->
+			   {ok,[Ebin,Priv]}
+		   end;
 	       Error->
 		   {error,Error}
 	   end,
