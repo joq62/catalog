@@ -117,7 +117,7 @@ find_filename([FileName|T],RepoDir,App,false)->
 %% @end
 %%--------------------------------------------------------------------
 timer_to_call_update(Interval)->
-    io:format(" ~p~n",[{?MODULE,?FUNCTION_NAME,?LINE}]),
+   % io:format(" ~p~n",[{?MODULE,?FUNCTION_NAME,?LINE}]),
     timer:sleep(Interval),
     rpc:cast(node(),catalog,update,[]).
 
